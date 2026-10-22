@@ -94,7 +94,7 @@ if want D; then
   : "${LLAMA_BIN:?set LLAMA_BIN for step D}"
   for cap in $BUDGETS; do
     for cfg in ${DCFGS:-B0 B0S B2 D2 P PD}; do
-      run="$OUT/D-$cap/$cfg"; mkdir -p "$run"
+      run="$OUT/D-$cap/$cfg"; mkdir -p "$run"; echo "${REPS:-1}" > "$run/reps"
       lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r "${REPS:-1}" -t "$(nproc --ignore=4)" -lm mmap)
       swap=0; daemon=()
       case "$cfg" in

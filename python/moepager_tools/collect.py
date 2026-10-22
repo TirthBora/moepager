@@ -112,7 +112,11 @@ def collect_run(run: Path, budget: str, config: str) -> RunResult:
         rows = parse_llama_bench(text)
         if rows:
             r.tok_s = rows[0][1]
-            r.tokens = rows[0][0]
+            # llama-bench decodes n_gen tokens per repetition plus a 1-token
+            # warmup; per-token SSD/fault metrics must use the total.
+            reps_f = _read(run / "reps")
+            reps = int(reps_f.strip()) if reps_f and reps_f.strip().isdigit() else 1
+            r.tokens = rows[0][0] * reps + 1
     else:
         r.tok_s, r.tokens = ev
     tokens = r.tokens or 0

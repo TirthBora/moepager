@@ -64,3 +64,14 @@ def test_missing_data_is_tbd(tmp_path):
     r = c.collect(tmp_path)[0]
     assert r.tok_s is None
     assert c.markdown([r]).count("TBD") == 7
+
+
+def test_llama_bench_token_total_uses_reps(tmp_path):
+    run = tmp_path / "2G" / "PD"
+    _snap(run / "before", 0, 0)
+    _snap(run / "after", 97 * 1000, 0)
+    (run / "llama.out").write_text((DATA / "llama_bench.md").read_text())
+    (run / "reps").write_text("3\n")
+    r = c.collect(tmp_path)[0]
+    assert r.tokens == 128 * 3 + 1
+    assert r.tok_s == 15.23
