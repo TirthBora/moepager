@@ -494,6 +494,14 @@ against the same budget.</p>
 <td>script + ingest written; needs root, <strong>not run</strong></td>
 </tr>
 <tr>
+<td>Start-up checks: read-around still on, daemon outside the engine's cgroup</td>
+<td>done, tested live</td>
+</tr>
+<tr>
+<td><code>MADV_POPULATE_READ</code> prefetch fallback (<code>--prefetch-mode populate</code>)</td>
+<td>done, tested on a real file; not benchmarked</td>
+</tr>
+<tr>
 <td>PSI-driven budget control, dashboard</td>
 <td>future work</td>
 </tr>
@@ -501,7 +509,7 @@ against the same budget.</p>
 </table>
 <h2>5.3 Correctness</h2>
 <ul>
-<li><strong>Tests:</strong> 85 Rust and 13 Python tests, run in CI. They include:<ul>
+<li><strong>Tests:</strong> 87 Rust and 13 Python tests, run in CI. They include:<ul>
 <li>parser checks against GGUF files written by an <em>independent</em> Python
     writer;</li>
 <li>an assertion that simulated LRU equals the analytically computed LRU

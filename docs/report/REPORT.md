@@ -382,11 +382,13 @@ Experiments:
 | V(e) pinning | implemented and unit-tested; live use needs `CAP_IPC_LOCK` (default memlock limit is 8 MB), **not measured** |
 | `MADV_COLD` demotion | implemented; needs `CAP_SYS_NICE`, **not measured** |
 | eBPF observation | script + ingest written; needs root, **not run** |
+| Start-up checks: read-around still on, daemon outside the engine's cgroup | done, tested live |
+| `MADV_POPULATE_READ` prefetch fallback (`--prefetch-mode populate`) | done, tested on a real file; not benchmarked |
 | PSI-driven budget control, dashboard | future work |
 
 ## 5.3 Correctness
 
-- **Tests:** 85 Rust and 13 Python tests, run in CI. They include:
+- **Tests:** 87 Rust and 13 Python tests, run in CI. They include:
     - parser checks against GGUF files written by an *independent* Python
         writer;
     - an assertion that simulated LRU equals the analytically computed LRU

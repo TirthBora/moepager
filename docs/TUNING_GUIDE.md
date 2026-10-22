@@ -37,8 +37,9 @@ decoded 1.40 / 3.21 tok/s, against 0.35 / 0.87 tok/s for `-nr` alone.
 | `--interval-us` | `500` | Sentinel poll period. Phase 7 used `300` |
 | `--no-completion` | off | Disables expert-completion readahead, the main mechanism. Keep it enabled |
 | `--refractory-ms` | `0` | Ignore repeated misses of a unit for this long. **Keep 0**: 20 ms doubled misses and cut throughput from 5.4 to 2.1 tok/s in the Phase 7 ablation |
+| `--prefetch-mode` | `willneed` | `willneed` = chunked `fadvise` (asynchronous; measured). `populate` = `MADV_POPULATE_READ` on a worker thread, for devices where WILLNEED has no effect (readahead disabled). Populate is tested on a real file but not benchmarked end to end |
 | `--predict` | off | Cross-layer predictive prefetch. Not recommended: wasted bandwidth in simulation, and its deadline estimate includes I/O stalls |
-| `--pid` | none | Engine pid: enables the read-around warning and `MADV_COLD` demotion (needs `CAP_SYS_NICE`, untested) |
+| `--pid` | none | Engine pid. Enables two start-up checks (read-around still on; daemon in a different cgroup from the engine) and `MADV_COLD` demotion (needs `CAP_SYS_NICE`, untested) |
 | `--duration-s` | none | Stop after N seconds (sentinel source) |
 | `--stats-json` | none | Write counters on exit (SIGINT/SIGTERM exit cleanly) |
 
