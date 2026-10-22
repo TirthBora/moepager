@@ -1,0 +1,19 @@
+$ python3 python/moepager_tools/collect.py bench/results/phase7-olmoe   (final pass, 3 reps)
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-1500M | B0 | 3.17 | 0.310 | 38205.5 | 64181.4 | 16.21 | 6351 | 1.57 |
+| D-1500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-1500M | B2 | 0.35 | 2.871 | 2112.4 | 687991.5 | 12.74 | 34763 | 1.57 |
+| D-1500M | D2 | 0.44 | 2.899 | 870.6 | 695946.5 | 4.76 | 11368 | 1.57 |
+| D-1500M | P | 0.74 | 0.250 | 50418.0 | 50474.9 | 18.14 | 24856 | 1.57 |
+| D-1500M | PD | 1.40 | 0.337 | 23901.5 | 71515.3 | 1.00 | 1626 | 1.57 |
+| D-2500M | B0 | 7.89 | 0.129 | 13853.5 | 20049.7 | 12.03 | 3205 | 2.62 |
+| D-2500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | B2 | 0.87 | 1.189 | 1402.1 | 278880.5 | 14.82 | 17428 | 2.62 |
+| D-2500M | D2 | 1.25 | 1.014 | 515.1 | 236641.7 | 12.26 | 9860 | 2.62 |
+| D-2500M | P | 2.51 | 0.104 | 14496.8 | 14548.9 | 4.45 | 3756 | 2.62 |
+| D-2500M | PD | 3.21 | 0.166 | 8160.5 | 29773.9 | 2.51 | 2116 | 2.62 |
+
+# moepagerd counters, PD @ 2500M:
+{ "events": 11938, "tokens": 98, "prefetch_ops": 11938, "pin_ops": 0, "unpin_ops": 0, "demote_ops": 0, "failed_ops": 0, "budget_clamps": 0, "suppressed_prefetches": 0}
+moepager_preload: MADV_RANDOM on 4018 MiB mapping (fd 3): ok

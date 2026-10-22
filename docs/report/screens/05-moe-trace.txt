@@ -1,0 +1,7 @@
+$ ./build/moe_trace/moe_trace -m olmoe-1b-7b-0924-q4_k_m.gguf -o trace-prose.csv -n 256 --no-repack -p "..."
+moe_trace: 256 tokens generated, 32640 expert rows -> bench/results/phase7-olmoe/trace-prose.csv
+token,layer,expert,t_ns
+0,0,6,1106548300
+0,0,15,1106548300
+0,0,63,1106548300
+...

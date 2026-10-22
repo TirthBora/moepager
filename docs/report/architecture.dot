@@ -1,7 +1,7 @@
 // moepager system architecture. Render: dot -Tpng -Gdpi=200 architecture.dot -o architecture.png
 digraph moepager {
   graph [rankdir=LR, fontname="Helvetica", fontsize=11, nodesep=0.35, ranksep=0.55, pad=0.2,
-         label="moepager: black-box, expert-aware page-cache management (no engine changes, no weight copies)",
+         label="moepager: black-box, expert-aware page-cache management (engine code and binary unchanged, no weight copies)",
          labelloc=t, fontsize=13];
   node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#ffffff", color="#555555"];
   edge  [fontname="Helvetica", fontsize=9, color="#444444"];
@@ -16,6 +16,8 @@ digraph moepager {
   subgraph cluster_user {
     label="User space"; style="rounded"; color="#888888";
     engine [label="Unmodified inference engine\n(llama.cpp, -nr, mmap)", fillcolor="#fff4e6"];
+    shim   [label="libmoepager_preload.so\n(LD_PRELOAD: madvise MADV_RANDOM\non the GGUF mapping → no read-around)", fillcolor="#fff4e6", fontsize=9];
+    shim -> engine [label="wraps mmap()", style=dashed, arrowsize=0.6];
     subgraph cluster_daemon {
       label="moepagerd (unprivileged daemon)"; style="rounded,filled"; fillcolor="#f2f8f2"; color="#5a8a5a";
       obs   [label="Observation\nsentinel mincore() poll\n(or eBPF filemap tracepoint)"];

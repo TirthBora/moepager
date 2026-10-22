@@ -1,0 +1,5 @@
+$ make test && make lint   (summary)
+Rust:   85 tests passed, 0 failed
+Python: 13 passed in 0.15s
+cargo fmt + clippy -D warnings: clean
+ruff: All checks passed!

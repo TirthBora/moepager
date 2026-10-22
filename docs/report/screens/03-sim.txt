@@ -1,0 +1,16 @@
+$ moepager sim trace-prose.mpt --map map.json --caps 0.25,0.5 --completion off --policies lru,lfu,static-freq,v-full,v-miss,belady
+|trace=bench/results/phase7-olmoe/trace-prose.mpt tokens=255 (warmup 16) expert_bytes=3.901GB t_layer=1.936ms demand=0.45GB/s bulk=2.4GB/s
+| capacity | completion | policy | miss ratio | SSD GB/token | est tok/s 
+|---|---|---|---|---|---
+| 25% (0.98 GB) | off | lru | 0.434 | 0.212 | 1.96 
+| 25% (0.98 GB) | off | lfu | 0.331 | 0.162 | 2.51 
+| 25% (0.98 GB) | off | static-freq* | 0.375 | 0.185 | 2.23 
+| 25% (0.98 GB) | off | v-full | 0.375 | 0.184 | 2.24 
+| 25% (0.98 GB) | off | v-miss | 0.391 | 0.193 | 2.15 
+| 25% (0.98 GB) | off | belady* | 0.237 | 0.116 | 3.40 
+| 50% (1.95 GB) | off | lru | 0.222 | 0.108 | 3.61 
+| 50% (1.95 GB) | off | lfu | 0.080 | 0.039 | 8.27 
+| 50% (1.95 GB) | off | static-freq* | 0.149 | 0.073 | 5.06 
+| 50% (1.95 GB) | off | v-full | 0.146 | 0.071 | 5.16 
+| 50% (1.95 GB) | off | v-miss | 0.151 | 0.074 | 5.01 
+| 50% (1.95 GB) | off | belady* | 0.058 | 0.028 | 10.32 
