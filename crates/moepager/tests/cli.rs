@@ -117,3 +117,49 @@ fn bad_inputs_fail_cleanly() {
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("top_k"));
 }
+
+#[test]
+fn import_csv_round_trips_through_trace_csv() {
+    let csv = tmp("gt.csv");
+    let mpt = tmp("gt.mpt");
+    let mut rows = String::from("token,layer,expert,t_ns\n");
+    for t in 0..10u32 {
+        for l in 0..2u32 {
+            for e in [t % 4, (t + 1) % 4] {
+                rows.push_str(&format!("{t},{l},{e},{}\n", t * 1000 + l * 10));
+            }
+        }
+    }
+    std::fs::write(&csv, rows).unwrap();
+    let out = run(&[
+        "import-csv",
+        csv.to_str().unwrap(),
+        "-o",
+        mpt.to_str().unwrap(),
+        "--layers",
+        "2",
+        "--experts",
+        "4",
+        "--top-k",
+        "2",
+    ]);
+    assert!(out.contains("imported 40 rows, 10 tokens"), "{out}");
+    let back = run(&["trace-csv", mpt.to_str().unwrap()]);
+    assert_eq!(back.lines().count(), 41);
+    // Out-of-range expert is rejected.
+    std::fs::write(&csv, "0,0,9,1\n").unwrap();
+    let st = Command::new(bin())
+        .args([
+            "import-csv",
+            csv.to_str().unwrap(),
+            "-o",
+            mpt.to_str().unwrap(),
+            "--layers",
+            "2",
+            "--experts",
+            "4",
+        ])
+        .output()
+        .unwrap();
+    assert!(!st.status.success());
+}

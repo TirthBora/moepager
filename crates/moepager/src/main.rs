@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 
 mod cmd_faultio;
 mod cmd_gguf;
+mod cmd_import;
 mod cmd_record;
 mod cmd_sim;
 mod cmd_trace;
@@ -41,6 +42,8 @@ enum Cmd {
     Replay(cmd_record::ReplayArgs),
     /// Microbenchmark: fault-driven vs bulk read bandwidth for expert units (Experiment C).
     FaultIo(cmd_faultio::Args),
+    /// Import a ground-truth expert trace CSV (from tools/moe_trace) as .mpt.
+    ImportCsv(cmd_import::Args),
     /// Print a trace as CSV.
     TraceCsv(cmd_trace::CsvArgs),
 }
@@ -52,6 +55,7 @@ fn main() -> Result<()> {
         Cmd::Analyze(a) => cmd_trace::analyze(a),
         Cmd::TraceCsv(a) => cmd_trace::csv(a),
         Cmd::Sim(a) => cmd_sim::run(a),
+        Cmd::ImportCsv(a) => cmd_import::run(a),
         Cmd::Record(a) => cmd_record::record(a),
         Cmd::IngestBpftrace(a) => cmd_record::ingest(a),
         Cmd::Page2expert(a) => cmd_record::page2expert(a),
