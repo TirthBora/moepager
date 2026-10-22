@@ -12,3 +12,4 @@ __pycache__/
 !tests/data/*.mpt
 bench/results/
 /build/
+tools/preload/libmoepager_preload.so
