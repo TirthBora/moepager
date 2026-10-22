@@ -80,6 +80,27 @@ pub fn kernel_dev_of_mapping(inode: u64, path: &Path) -> io::Result<Option<(u32,
     Ok(found.first().map(|m| (m.dev_major, m.dev_minor)))
 }
 
+/// `VmFlags` of the mapping starting at `start` in /proc/<pid>/smaps
+/// (e.g. "rd sh mr mw me ms rr"; `rr` = VM_RAND_READ, read-around off).
+pub fn mapping_vmflags(pid: u32, start: u64) -> io::Result<Option<String>> {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/smaps"))?;
+    Ok(vmflags_from_smaps(&text, start))
+}
+
+fn vmflags_from_smaps(text: &str, start: u64) -> Option<String> {
+    let mut inside = false;
+    for line in text.lines() {
+        if let Some(m) = parse_maps_line(line) {
+            inside = m.start == start;
+        } else if inside {
+            if let Some(f) = line.strip_prefix("VmFlags:") {
+                return Some(f.trim().to_string());
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -98,5 +119,20 @@ mod tests {
         let anon = parse_maps_line("7ffd1000-7ffd2000 rw-p 00000000 00:00 0").unwrap();
         assert_eq!(anon.path, None);
         assert!(parse_maps_line("garbage").is_none());
+    }
+
+    #[test]
+    fn finds_vmflags_of_mapping() {
+        let smaps = "7f00-7f10 r--s 00000000 00:2a 42 /m.gguf\nSize: 64 kB\nVmFlags: rd sh mr rr\n\
+                     7f20-7f30 rw-p 00000000 00:00 0\nVmFlags: rd wr mr mw me ac\n";
+        assert_eq!(
+            vmflags_from_smaps(smaps, 0x7f00).as_deref(),
+            Some("rd sh mr rr")
+        );
+        assert_eq!(
+            vmflags_from_smaps(smaps, 0x7f20).as_deref(),
+            Some("rd wr mr mw me ac")
+        );
+        assert_eq!(vmflags_from_smaps(smaps, 0x1), None);
     }
 }
