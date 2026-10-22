@@ -1,6 +1,6 @@
 # ADR 0009 — Two-Tier Observation Architecture
 
-**Status:** accepted (2026-09-09)
+**Status:** accepted (decided 2026-09-24, recorded 2026-10)
 
 **Context.** User environments vary from root-restricted unprivileged desktops to dedicated benchmark setups with root capabilities.
 

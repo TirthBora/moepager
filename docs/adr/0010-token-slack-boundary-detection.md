@@ -1,6 +1,6 @@
 # ADR 0010 — Token Boundary Detection via Layer Regression
 
-**Status:** accepted (2026-09-10)
+**Status:** accepted (decided 2026-09-26, recorded 2026-10)
 
 **Context.** In black-box inference, the daemon does not receive token stepping notifications from `llama.cpp`.
 

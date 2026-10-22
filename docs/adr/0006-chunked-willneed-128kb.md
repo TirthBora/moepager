@@ -1,6 +1,6 @@
 # ADR 0006 — Chunked 128 KiB WILLNEED Readahead
 
-**Status:** accepted (2026-09-06)
+**Status:** accepted (decided 2026-09-30, recorded 2026-10)
 
 **Context.** Linux `posix_fadvise(POSIX_FADV_WILLNEED)` internally invokes `force_page_cache_ra()`, which silently caps the readahead length to `max(bdi->io_pages, ra->ra_pages)`. On standard NVMe drives with 128 KiB readahead, issuing `WILLNEED` for an entire 1 MB or 4 MB slice only populates the first 128 KiB.
 

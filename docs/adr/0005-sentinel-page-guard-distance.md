@@ -6,10 +6,10 @@
 
 **Decision.**
 - Position the sentinel page at the geometric center of each expert slice.
-- Enforce a minimum guard distance (`SENTINEL_GUARD = 128 * 1024` bytes) from both the starting and ending offsets of the slice whenever the slice length permits (`len >= 2 * SENTINEL_GUARD`).
+- Enforce a minimum guard distance (`SENTINEL_GUARD = 128 * 1024` bytes) from both the starting and ending offsets of the slice whenever the slice length permits (`len >= 2 * SENTINEL_GUARD + 2 * page_size`; see `ExpertMap::sentinel`).
 - For smaller slices, fallback to the exact slice midpoint.
 
 **Consequences.**
-- Sentinel page hits reliably indicate intentional execution access of that specific expert, eliminating false-positive activations caused by neighboring read-around.
+- Sentinels are immune to a neighbour's 128 KiB read-around. They are **not** immune to larger windows: on btrfs (4 MiB readahead, compressed 128 KiB extents) neighbours' sentinels still fire. Phase 7 measured 331k events for 32k real uses with read-around on, which is why the engine should run with the read-around shim (ADR 0011).
 - Minor overhead during header mapping to compute guarded offsets.
-- Verified on real Qwen3-30B-A3B and OLMoE tensor layouts.
+- Sentinel positions were computed for the real Qwen3-30B-A3B and OLMoE layouts; detection was validated end to end against a replayer with readahead off (`crates/mp-recorder/tests/e2e.rs`).
