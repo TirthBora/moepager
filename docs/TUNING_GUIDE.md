@@ -1,72 +1,63 @@
 # Daemon Configuration and Tuning Guide
 
-This document describes how to configure and tune `moepagerd` for various host memory sizes, storage characteristics, and workload domains.
+How to run and tune `moepagerd`. Every flag below exists (`moepagerd
+--help`). Every recommendation is either measured (Phase 7, OLMoE-1B-7B on
+a 15 GB laptop, BENCHMARKS.md) or explicitly marked as untested.
 
 ---
 
-## Core Configuration Parameters
+## Recommended setup (measured)
 
-### 1. Pin Budget (`--pin-budget-bytes`)
-- **Default**: `0` (prefetch-only mode).
-- **Recommended**: Set to `Available_RAM - Non_Expert_Weights - Co_Tenant_Reserve`.
-- **Guidelines**:
-  - Non-expert model weights (attention, norms, routers, output embeddings) take approximately 0.5–1.2 GB and are accessed on every single token.
-  - Leave at least 3–4 GB of headroom for desktop environments, browser tabs, and terminal tasks.
-  - For an 18.5 GB model on a 16 GB laptop with 10 GB free RAM, a pin budget of `4G` to `6G` (25–35% of expert bytes) is optimal.
-
-### 2. Re-plan Frequency (`--replan-every`)
-- **Default**: `4` tokens.
-- **Tuning**:
-  - Lower values (1–2): Rapidly adapts to domain shifts (e.g. switching from conversational text to Python code generation). Slightly increases userspace CPU overhead.
-  - Higher values (8–16): Minimizes pin/unpin churn and system call overhead for stable single-topic generations.
-
-### 3. Hysteresis (`--hysteresis`)
-- **Default**: `1.25` (a candidate must have 25% higher $V(e)$ value than the lowest pinned expert to replace it).
-- **Tuning**:
-  - Prevents ping-pong eviction churn where experts oscillate in and out of the pinned set between adjacent tokens.
-  - If observing high `churn` counters in `--stats`, increase to `1.4`–`1.5`.
-
-### 4. Exploration Fraction (`--explore-frac`)
-- **Default**: `0.02` (2% of pinned slots per re-plan).
-- **Tuning**:
-  - Essential in the **miss-only** observation regime: once an expert is pinned, hits become invisible to `mincore` or eBPF miss tracepoints.
-  - Unpinning a random small fraction periodically allows the statistics engine to verify whether the expert is still actively hot.
-  - Increase to `0.05` for highly dynamic multi-turn chat sessions.
-
-### 5. Prefetch Modes (`--prefetch`)
-- `completion` (Default recommended): Once any slice of an expert unit faults, immediately issues 128 KiB chunked `WILLNEED` calls for all 3 slices. Increases effective I/O bandwidth from ~0.45 GB/s to ~2.4 GB/s.
-- `predict`: Uses cross-layer transition matrices to speculate on upcoming layers. Recommended only when NVMe bandwidth is high (>3 GB/s) and compute times provide adequate lookahead slack.
-
----
-
-## Example Deployment Profiles
-
-### Profile A: Low-RAM Laptop (16 GB Total RAM, 18.5 GB Model)
 ```bash
-moepagerd \
-  ~/models/Qwen3-30B-A3B-Q4_K_M.gguf \
-  --policy v \
-  --pin-budget-bytes 5368709120 \
-  --replan-every 4 \
-  --hysteresis 1.30 \
-  --prefetch completion
+# 1. Engine: weights in the page cache, fault read-around off.
+LD_PRELOAD=$PWD/tools/preload/libmoepager_preload.so \
+  llama-cli -m model.gguf -nr ...
+# 2. Daemon: expert-completion readahead, no pinning, no privileges.
+target/release/moepagerd model.gguf --ops linux --source sentinel --policy v --budget-mb 0
 ```
 
-### Profile B: Workstation (32 GB Total RAM, 60% Residency)
-```bash
-moepagerd \
-  ~/models/Qwen3-30B-A3B-Q4_K_M.gguf \
-  --policy v \
-  --pin-budget-bytes 11811160064 \
-  --replan-every 8 \
-  --hysteresis 1.20 \
-  --prefetch completion,predict
-```
+With both inside the same cgroup and a 1.5 GB / 2.5 GB `memory.max`, this
+decoded 1.40 / 3.21 tok/s, against 0.35 / 0.87 tok/s for `-nr` alone.
 
----
+- **Do not run the daemon without the shim** (read-around on). It then
+  helped only 1.3–1.4×. With btrfs's 4 MiB read-around, its sentinels fire
+  on pages pulled in as collateral.
+- Pass `--pid <engine pid>`. The daemon then warns at start-up if the
+  engine's mapping still has read-around on (missing `rr` in
+  `/proc/<pid>/smaps` VmFlags).
 
-### Profile C: Cloud VM with High-IOPS NVMe (e.g. AWS i3en / GCP c3-highmem)
-- When backing storage provides $>4\text{ GB/s}$ sustained sequential I/O:
-  - Set --prefetch completion,predict
-  - Reduce --replan-every to 2 tokens to capture bursty routing patterns
-  - Set --pin-budget-bytes to 50% of expert bytes
+## Flags
+
+| Flag | Default | Meaning / guidance |
+|---|---|---|
+| `--policy` | `v` | `v` (completion readahead, plus V(e) pinning if `--budget-mb` > 0), `lru-pin`, `willneed-all` (naive baseline), `none` (observe only) |
+| `--budget-mb` | `0` | Pin budget. **0 recommended.** Pinning needs `CAP_IPC_LOCK` or a raised `RLIMIT_MEMLOCK` (8 MB default), and V(e) pinning underperformed LFU in simulation. *Untested end to end.* |
+| `--source` | `sentinel` | `sentinel` (unprivileged `mincore` polling) or `trace:<file.mpt>` (dry run) |
+| `--ops` | `mock` | Use `linux` for real effect; `mock` only logs |
+| `--interval-us` | `500` | Sentinel poll period. Phase 7 used `300` |
+| `--no-completion` | off | Disables expert-completion readahead, the main mechanism. Keep it enabled |
+| `--refractory-ms` | `0` | Ignore repeated misses of a unit for this long. **Keep 0**: 20 ms doubled misses and cut throughput from 5.4 to 2.1 tok/s in the Phase 7 ablation |
+| `--predict` | off | Cross-layer predictive prefetch. Not recommended: wasted bandwidth in simulation, and its deadline estimate includes I/O stalls |
+| `--pid` | none | Engine pid: enables the read-around warning and `MADV_COLD` demotion (needs `CAP_SYS_NICE`, untested) |
+| `--duration-s` | none | Stop after N seconds (sentinel source) |
+| `--stats-json` | none | Write counters on exit (SIGINT/SIGTERM exit cleanly) |
+
+Hysteresis (1.25), re-plan cadence (4 tokens), exploration fraction (0.02)
+and the decay half-life (64 tokens) are `ResidencyConfig` / `DaemonConfig`
+fields in code. They have **no CLI flags** and only matter when pinning is
+enabled.
+
+## Memory budget
+
+- Run the engine and daemon in one cgroup, so pages the daemon prefetches
+  count against the same limit:
+  `systemd-run --user --scope -p MemoryMax=<C> -p MemorySwapMax=0 -- …`
+  (see `bench/cgroup_run.sh`).
+- Default llama.cpp (with repacking) cannot run in such a budget without
+  swap. It was OOM-killed at 1.5 GB and 2.5 GB.
+
+## Untested
+
+- Larger models (Qwen3-30B-A3B, gpt-oss-20b), ext4 (128 KiB read-around),
+  disk swap, cloud VMs: no measurements yet.
+- Pinning profiles and any "optimal" budget values: not measured.
