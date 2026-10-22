@@ -87,6 +87,14 @@ pub fn mapping_vmflags(pid: u32, start: u64) -> io::Result<Option<String>> {
     Ok(vmflags_from_smaps(&text, start))
 }
 
+/// The cgroup v2 path of a process (`0::/user.slice/...` in /proc/<pid>/cgroup).
+pub fn cgroup_of(pid: u32) -> io::Result<Option<String>> {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/cgroup"))?;
+    Ok(text
+        .lines()
+        .find_map(|l| l.strip_prefix("0::").map(str::to_string)))
+}
+
 fn vmflags_from_smaps(text: &str, start: u64) -> Option<String> {
     let mut inside = false;
     for line in text.lines() {

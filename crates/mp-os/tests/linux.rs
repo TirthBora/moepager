@@ -196,3 +196,28 @@ fn finds_own_mapping_in_proc_maps() {
     let kdev = kernel_dev_of_mapping(ino, &p).unwrap();
     assert!(kdev.is_some());
 }
+
+#[test]
+fn populate_mode_makes_whole_range_resident() {
+    let Some(p) = scratch("populate.bin", 2 << 20) else {
+        return;
+    };
+    let m = MappedFile::open(&p).unwrap();
+    let mut ops = LinuxOps::new(MappedFile::open(&p).unwrap());
+    ops.mode = mp_os::PrefetchMode::Populate(mp_os::PopulateWorker::spawn(&p, 64).unwrap());
+    // 1 MiB in one request: WILLNEED would be truncated, populate is not.
+    ops.prefetch(0, 1 << 20).unwrap();
+    let n = (1u64 << 20) / m.page_size();
+    assert!(
+        wait_for(|| count(&m, 0, n) == n as usize),
+        "populated {}/{n}",
+        count(&m, 0, n)
+    );
+    drop(ops); // joins the worker
+}
+
+#[test]
+fn finds_own_cgroup() {
+    let cg = mp_os::cgroup_of(std::process::id()).unwrap();
+    assert!(cg.is_some_and(|c| c.starts_with('/')));
+}

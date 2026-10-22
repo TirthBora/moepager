@@ -299,12 +299,72 @@ pub fn willneed_chunked(fd: libc::c_int, off: u64, len: u64, chunk: u64) -> io::
     Ok(())
 }
 
+/// Background prefetcher using `madvise(MADV_POPULATE_READ)` (Linux 5.14+)
+/// on its own mapping. Unlike WILLNEED it works when the device's readahead
+/// is disabled and is never truncated, but it is synchronous, so it runs on
+/// a worker thread behind a bounded queue: requests are dropped (and
+/// counted) rather than stalling the daemon when the queue is full.
+pub struct PopulateWorker {
+    tx: Option<std::sync::mpsc::SyncSender<(u64, u64)>>,
+    handle: Option<std::thread::JoinHandle<()>>,
+    /// Requests dropped because the queue was full.
+    pub dropped: u64,
+}
+
+impl PopulateWorker {
+    pub fn spawn(path: &Path, queue: usize) -> io::Result<Self> {
+        let file = MappedFile::open(path)?;
+        let (tx, rx) = std::sync::mpsc::sync_channel::<(u64, u64)>(queue);
+        let handle = std::thread::Builder::new()
+            .name("moepager-populate".into())
+            .spawn(move || {
+                for (off, len) in rx {
+                    if let Ok((a, l)) = file.span(off, len) {
+                        // SAFETY: range inside the worker's own read-only mapping.
+                        unsafe { libc::madvise(a, l, libc::MADV_POPULATE_READ) };
+                    }
+                }
+            })?;
+        Ok(PopulateWorker {
+            tx: Some(tx),
+            handle: Some(handle),
+            dropped: 0,
+        })
+    }
+
+    fn submit(&mut self, off: u64, len: u64) {
+        if let Some(tx) = &self.tx {
+            if tx.try_send((off, len)).is_err() {
+                self.dropped += 1;
+            }
+        }
+    }
+}
+
+impl Drop for PopulateWorker {
+    fn drop(&mut self) {
+        self.tx.take();
+        if let Some(h) = self.handle.take() {
+            let _ = h.join();
+        }
+    }
+}
+
+/// How `PageCacheOps::prefetch` brings pages in.
+pub enum PrefetchMode {
+    /// `posix_fadvise(WILLNEED)` in chunks (asynchronous; the default).
+    Willneed,
+    /// `MADV_POPULATE_READ` on a worker thread (fallback when WILLNEED is ineffective).
+    Populate(PopulateWorker),
+}
+
 /// Real page-cache operations on the model file.
 pub struct LinuxOps {
     pub file: MappedFile,
     pub target: Option<TargetMapping>,
     /// See [`WILLNEED_CHUNK`].
     pub willneed_chunk: u64,
+    pub mode: PrefetchMode,
 }
 
 impl LinuxOps {
@@ -313,13 +373,22 @@ impl LinuxOps {
             file,
             target: None,
             willneed_chunk: WILLNEED_CHUNK,
+            mode: PrefetchMode::Willneed,
         }
     }
 }
 
 impl PageCacheOps for LinuxOps {
     fn prefetch(&mut self, offset: u64, len: u64) -> io::Result<()> {
-        willneed_chunked(self.file.fd(), offset, len, self.willneed_chunk)
+        match &mut self.mode {
+            PrefetchMode::Willneed => {
+                willneed_chunked(self.file.fd(), offset, len, self.willneed_chunk)
+            }
+            PrefetchMode::Populate(w) => {
+                w.submit(offset, len);
+                Ok(())
+            }
+        }
     }
     fn pin(&mut self, offset: u64, len: u64) -> io::Result<()> {
         let (a, l) = self.file.span(offset, len)?;
