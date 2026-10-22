@@ -1,7 +1,7 @@
 //! moepagerd: expert-aware page-cache daemon for an unmodified MoE engine.
 //!
-//! Status: skeleton. `--ops mock` dry runs are tested; `--ops linux` with
-//! `--source sentinel` against a live llama.cpp is UNTESTED-ON-HW.
+//! `--ops mock` dry runs are tested. `--ops linux --source sentinel` was
+//! measured with llama.cpp in Phase 7 (OLMoE, one machine; BENCHMARKS.md).
 
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
@@ -13,7 +13,8 @@ use moepagerd::source::{install_stop_handler, EventSource, SentinelSource, Trace
 use moepagerd::{Daemon, DaemonConfig, Policy};
 use mp_gguf::{parse_file, ExpertMap};
 use mp_os::{
-    find_file_mapping, memlock_limit, LinuxOps, MappedFile, MockOps, PageCacheOps, TargetMapping,
+    cgroup_of, find_file_mapping, memlock_limit, LinuxOps, MappedFile, MockOps, PageCacheOps,
+    PopulateWorker, PrefetchMode, TargetMapping,
 };
 
 #[derive(Parser)]
@@ -47,6 +48,11 @@ struct Args {
     /// (0 = off; a 20 ms window measured slower, see DaemonConfig).
     #[arg(long, default_value_t = 0.0)]
     refractory_ms: f64,
+    /// How to prefetch: `willneed` (chunked fadvise, asynchronous) or
+    /// `populate` (MADV_POPULATE_READ on a worker thread; use when WILLNEED
+    /// has no effect, e.g. readahead disabled on the device).
+    #[arg(long, default_value = "willneed")]
+    prefetch_mode: String,
     /// Enable cross-layer predictive prefetch (V policy).
     #[arg(long)]
     predict: bool,
@@ -122,7 +128,22 @@ fn main() -> Result<()> {
             }
             let file = MappedFile::open(&a.gguf)?;
             let mut ops = LinuxOps::new(file);
+            match a.prefetch_mode.as_str() {
+                "willneed" => {}
+                "populate" => {
+                    ops.mode = PrefetchMode::Populate(PopulateWorker::spawn(&a.gguf, 4096)?)
+                }
+                m => bail!("--prefetch-mode must be willneed or populate (got {m})"),
+            }
             if let Some(pid) = a.pid {
+                let (mine, theirs) = (cgroup_of(std::process::id())?, cgroup_of(pid)?);
+                if mine != theirs {
+                    eprintln!(
+                        "warning: moepagerd runs in cgroup {mine:?} but pid {pid} in {theirs:?}; \
+                         pages the daemon prefetches are charged to the daemon's cgroup, not the \
+                         engine's memory budget (run both in one scope, see bench/cgroup_run.sh)"
+                    );
+                }
                 let md = std::fs::metadata(&a.gguf)?;
                 let dev = (libc_major(md.dev()), libc_minor(md.dev()));
                 let maps = find_file_mapping(pid, dev, md.ino(), Some(&a.gguf))?;

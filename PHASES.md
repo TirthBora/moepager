@@ -21,15 +21,14 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
   swap beyond the budget.
 - **Demoted:** V(e) pinning (LFU did better in simulation; needs
   `CAP_IPC_LOCK`) and predictive prefetch.
-- **Tests:** 85 Rust + 13 Python, all passing; clippy and ruff clean.
+- **Tests:** 87 Rust + 13 Python, all passing; clippy and ruff clean; CI green.
 - **Team docs:** Ayush's docs branch was merged on GitHub (PR #1). Its
   factual errors were then corrected on `main`; the record is in
   `docs/report/REVIEW_AYUSH_BRANCH.md`.
 
 ## Next up
 
-1. **P8.3 / P8.5 / P8.7** (below): same-cgroup check, a fallback when
-   WILLNEED is ineffective, and an LFU-based residency policy.
+1. **P8.7**: an LFU-based residency policy (P8.3 and P8.5 are done).
 2. **P10.1** validation on a second machine (ext4, disk swap), so that
    default llama.cpp can be compared at equal memory, and on Qwen3-30B-A3B
    (needs ~19 GB of free disk).
@@ -109,9 +108,9 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
 ### Phase 8 — Live daemon hardening ← NEXT (re-scoped after Phase 7)
 - [ ] P8.1 libbpf-rs CO-RE tracer for filemap tracepoints (inode filter in-kernel)
 - [ ] P8.2 Live actuators hardened (mlock budget accounting, process_madvise demotion, fallback chain)
-- [ ] P8.3 Same-cgroup enforcement and accounting checks
+- [x] P8.3 Same-cgroup check: `moepagerd --pid` warns when daemon and engine are in different cgroups
 - [ ] P8.4 Optional DAMON-assisted hit observation (root)
-- [ ] P8.5 `MADV_POPULATE_READ` worker fallback for prefetch when WILLNEED is ineffective
+- [x] P8.5 `--prefetch-mode populate`: `MADV_POPULATE_READ` on a worker thread with a bounded queue (tested on a real file; not benchmarked end to end)
 - [ ] P8.6 Compute-time (not wall-time) layer estimate for the prefetch deadline budget (low priority: prediction prefetch demoted)
 - [x] P8.8 Warn when the engine maps the model with read-around on (`/proc/pid/smaps` VmFlags `rr`)
 - [x] P8.9 Read-around shim (`tools/preload`, ADR 0011)
