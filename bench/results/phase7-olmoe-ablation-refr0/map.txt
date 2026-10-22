@@ -1,0 +1,1 @@
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0

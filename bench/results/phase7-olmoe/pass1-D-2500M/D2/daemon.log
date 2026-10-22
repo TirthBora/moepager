@@ -1,0 +1,2 @@
+moepagerd: arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0 | policy V | pin budget 0 MiB | ops linux
+{"events":24381,"tokens":61,"prefetch_ops":24381,"pin_ops":0,"unpin_ops":0,"demote_ops":0,"failed_ops":0,"budget_clamps":0}

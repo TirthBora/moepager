@@ -1,0 +1,382 @@
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      33%
+               total        used        free      shared  buff/cache   available
+Mem:           15671       10859         328         688        5531        4811
+/dev/nvme0n1p3 btrfs 498443264 467754060  27031124  95% /home
+/sys/class/bdi/0:252/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== A: ground-truth traces + simulation
+~llama_context:        CPU compute buffer size is   7.6552 MiB, matches expectation of   7.6552 MiB
+imported 32640 rows, 255 tokens -> bench/results/phase7-olmoe/trace-chat.mpt
+wrote bench/results/phase7-olmoe/analyze-chat.json
+source=llama-evalcb observation=Full tokens=255 accesses=32640
+footprint=3.628GB cold_misses=951 median_reuse_units=Some(223)
+token_reuse=0.414 top10_share=0.296 norm_entropy=0.899 units_touched=0.929
+next-layer recall@k: transitions=0.603 popularity=0.355 prev-token=0.417 (concentration top4=0.341)
+~llama_context:        CPU compute buffer size is   7.1912 MiB, matches expectation of   7.1912 MiB
+imported 32640 rows, 255 tokens -> bench/results/phase7-olmoe/trace-code.mpt
+wrote bench/results/phase7-olmoe/analyze-code.json
+source=llama-evalcb observation=Full tokens=255 accesses=32640
+footprint=2.831GB cold_misses=742 median_reuse_units=Some(185)
+token_reuse=0.476 top10_share=0.549 norm_entropy=0.700 units_touched=0.725
+next-layer recall@k: transitions=0.778 popularity=0.657 prev-token=0.484 (concentration top4=0.447)
+~llama_context:        CPU compute buffer size is   5.1035 MiB, matches expectation of   5.1035 MiB
+imported 32640 rows, 255 tokens -> bench/results/phase7-olmoe/trace-prose.mpt
+wrote bench/results/phase7-olmoe/analyze-prose.json
+source=llama-evalcb observation=Full tokens=255 accesses=32640
+footprint=2.866GB cold_misses=750 median_reuse_units=Some(193)
+token_reuse=0.448 top10_share=0.376 norm_entropy=0.832 units_touched=0.732
+next-layer recall@k: transitions=0.687 popularity=0.453 prev-token=0.455 (concentration top4=0.399)
+== C: fault vs bulk read bandwidth on the model file
+-- seed 1 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.23 | 16.85 | 5.01 |
+| willneed | 1.51 | 2.52 | 1.00 |
+| pread | 0.46 | 8.26 | 1.24 |
+-- seed 1 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.15 | 25.93 | 4.89 |
+| willneed | 1.42 | 2.68 | 1.00 |
+| pread | 0.56 | 6.75 | 1.24 |
+-- seed 2 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.24 | 15.73 | 4.49 |
+| willneed | 1.70 | 2.24 | 1.00 |
+| pread | 0.56 | 6.80 | 1.24 |
+-- seed 2 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.21 | 18.09 | 4.63 |
+| willneed | 0.97 | 3.92 | 1.00 |
+| pread | 0.55 | 6.90 | 1.24 |
+-- seed 3 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.19 | 20.13 | 4.90 |
+| willneed | 1.49 | 2.56 | 1.00 |
+| pread | 0.44 | 8.74 | 1.24 |
+-- seed 3 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.21 | 18.57 | 5.10 |
+| willneed | 1.23 | 3.09 | 1.00 |
+| pread | 0.44 | 8.58 | 1.24 |
+results in bench/results/phase7-olmoe
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      44%
+               total        used        free      shared  buff/cache   available
+Mem:           15671       10989        2054         796        3760        4681
+/dev/nvme0n1p3 btrfs 498443264 467755284  27029996  95% /home
+/sys/class/bdi/0:252/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== B: replay ground truth under a memory wall (simulator validation)
+tee: bench/results/phase7-olmoe/B-1500M/replay.txt: No such file or directory
+tokens=255 wall=324.89s tok/s=0.78 majflt/token=969.1 storage_read/token=1.782GB touched/token=0.488GB
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      34%
+               total        used        free      shared  buff/cache   available
+Mem:           15671       11412         189         823        5237        4259
+/dev/nvme0n1p3 btrfs 498443264 467757808  27027376  95% /home
+/sys/class/bdi/0:252/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== B: replay ground truth under a memory wall (simulator validation + mechanism test)
+1500M plain: tokens=255 wall=324.04s tok/s=0.79 majflt/token=956.4 storage_read/token=1.799GB touched/token=0.488GB
+1500M random: tokens=255 wall=338.15s tok/s=0.75 majflt/token=38801.6 storage_read/token=0.159GB touched/token=0.488GB
+1500M daemon: tokens=255 wall=384.73s tok/s=0.66 majflt/token=880.9 storage_read/token=1.614GB touched/token=0.488GB
+2500M plain: tokens=255 wall=78.51s tok/s=3.25 majflt/token=338.3 storage_read/token=0.371GB touched/token=0.488GB
+2500M random: tokens=255 wall=43.87s tok/s=5.81 majflt/token=5703.7 storage_read/token=0.023GB touched/token=0.488GB
+2500M daemon: tokens=255 wall=90.44s tok/s=2.82 majflt/token=320.8 storage_read/token=0.358GB touched/token=0.488GB
+results in bench/results/phase7-olmoe
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      43%
+               total        used        free      shared  buff/cache   available
+Mem:           15671       11406         377         781        5057        4264
+/dev/nvme0n1p3 btrfs 498443264 467735960  27049928  95% /home
+/sys/class/bdi/0:252/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== B: replay ground truth under a memory wall (simulator validation + mechanism test)
+1500M randaemon: tokens=255 wall=98.79s tok/s=2.58 majflt/token=12341.6 storage_read/token=0.050GB touched/token=0.488GB
+2500M randaemon: tokens=255 wall=102.98s tok/s=2.48 majflt/token=12640.7 storage_read/token=0.052GB touched/token=0.488GB
+== D: end-to-end llama-bench decode under a memory wall
+B0 failed at 1500M
+1500M B0: 
+1500M B2:           0.37 ± 0.00 
+1500M D2:           0.41 ± 0.00 
+Terminated
+L failed at 1500M
+1500M L: 
+Terminated
+LD failed at 1500M
+1500M LD: 
+B0 failed at 2500M
+2500M B0: 
+2500M B2:           0.78 ± 0.00 
+2500M D2:           1.18 ± 0.00 
+Terminated
+L failed at 2500M
+2500M L: 
+Terminated
+LD failed at 2500M
+2500M LD: 
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-1500M | B0 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-1500M | B2 | 0.37 | 3.075 | 2375.1 | 716934.5 | 16.91 | 16067 | 1.57 |
+| D-1500M | D2 | 0.41 | 3.269 | 990.1 | 762127.8 | 6.77 | 6791 | 1.57 |
+| D-1500M | L | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-1500M | LD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | B0 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | B2 | 0.78 | 1.376 | 1604.1 | 279927.4 | 10.81 | 6662 | 2.62 |
+| D-2500M | D2 | 1.18 | 1.236 | 631.9 | 260035.4 | 14.51 | 4833 | 2.62 |
+| D-2500M | L | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | LD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+results in bench/results/phase7-olmoe
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      42%
+               total        used        free      shared  buff/cache   available
+Mem:           15671        4898        1956         370        9587       10773
+/dev/nvme0n1p3 btrfs 498443264 460783504  33989104  94% /home
+/sys/class/bdi/0:286/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== D: end-to-end llama-bench decode under a memory wall
+1500M B0:           1.18 ± 0.00 
+1500M B2:           0.30 ± 0.00 
+1500M D2:           0.39 ± 0.00 
+1500M P:           0.78 ± 0.00 
+1500M PD:           1.84 ± 0.00 
+2500M B0:           8.42 ± 0.00 
+2500M B2:           0.91 ± 0.00 
+2500M D2:           1.30 ± 0.00 
+2500M P:           2.30 ± 0.00 
+2500M PD:           3.30 ± 0.00 
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-1500M | B0 | 1.18 | 0.600 | 39190.5 | 82902.2 | 11.71 | 5000 | 1.57 |
+| D-1500M | B2 | 0.30 | 3.097 | 2278.3 | 711761.5 | 15.06 | 15733 | 1.57 |
+| D-1500M | D2 | 0.39 | 3.289 | 1022.4 | 766579.8 | 7.26 | 7223 | 1.57 |
+| D-1500M | P | 0.78 | 0.345 | 49448.1 | 49634.8 | 16.46 | 8090 | 1.57 |
+| D-1500M | PD | 1.84 | 0.401 | 18531.9 | 63106.3 | 1.28 | 773 | 1.57 |
+| D-2500M | B0 | 8.42 | 0.292 | 18959.2 | 36887.5 | 10.77 | 2051 | 2.62 |
+| D-2500M | B2 | 0.91 | 1.333 | 1095.0 | 291116.8 | 14.87 | 5915 | 2.62 |
+| D-2500M | D2 | 1.30 | 1.131 | 505.2 | 242528.5 | 10.81 | 3002 | 2.62 |
+| D-2500M | P | 2.30 | 0.213 | 17124.8 | 17252.6 | 5.39 | 1097 | 2.62 |
+| D-2500M | PD | 3.30 | 0.254 | 8320.1 | 27986.7 | 10.69 | 1759 | 2.62 |
+results in bench/results/phase7-olmoe
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      55%
+               total        used        free      shared  buff/cache   available
+Mem:           15671        5627        1371         336        9446       10044
+/dev/nvme0n1p3 btrfs 498443264 460968032  33804896  94% /home
+/sys/class/bdi/0:286/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== D: end-to-end llama-bench decode under a memory wall
+1500M B0:           3.17 ± 0.26 
+Terminated
+B0S failed at 1500M
+1500M B0S: 
+1500M B2:           0.35 ± 0.01 
+1500M D2:           0.47 ± 0.03 
+1500M P:           0.74 ± 0.07 
+1500M PD:           1.40 ± 0.33 
+2500M B0:           7.89 ± 1.37 
+Terminated
+B0S failed at 2500M
+2500M B0S: 
+2500M B2:           0.87 ± 0.02 
+2500M D2:           1.25 ± 0.05 
+2500M P:           2.51 ± 0.51 
+2500M PD:           1.09 ± 0.04 
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-1500M | B0 | 3.17 | 0.940 | 115810.4 | 194549.7 | 16.21 | 6351 | 1.57 |
+| D-1500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-1500M | B2 | 0.35 | 8.702 | 6403.2 | 2085474.2 | 12.74 | 34763 | 1.57 |
+| D-1500M | D2 | 0.47 | 8.303 | 2619.7 | 1994451.9 | 5.15 | 11363 | 1.57 |
+| D-1500M | P | 0.74 | 0.759 | 152829.6 | 153002.0 | 18.14 | 24856 | 1.57 |
+| D-1500M | PD | 1.40 | 1.013 | 67670.4 | 214716.7 | 0.92 | 1165 | 1.57 |
+| D-2500M | B0 | 7.89 | 0.391 | 41993.5 | 60775.6 | 12.03 | 3205 | 2.62 |
+| D-2500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | B2 | 0.87 | 3.603 | 4250.2 | 845356.7 | 14.82 | 17428 | 2.62 |
+| D-2500M | D2 | 1.25 | 3.025 | 1536.0 | 705170.1 | 12.31 | 9548 | 2.62 |
+| D-2500M | P | 2.51 | 0.315 | 43943.3 | 44101.2 | 4.45 | 3756 | 2.62 |
+| D-2500M | PD | 1.09 | 1.415 | 78169.9 | 312190.8 | 0.02 | 890 | 2.62 |
+| pass1-D-1500M | B0 | 1.18 | 0.600 | 39190.5 | 82902.2 | 11.71 | 5000 | 1.57 |
+| pass1-D-1500M | B2 | 0.30 | 3.097 | 2278.3 | 711761.5 | 15.06 | 15733 | 1.57 |
+| pass1-D-1500M | D2 | 0.39 | 3.289 | 1022.4 | 766579.8 | 7.26 | 7223 | 1.57 |
+| pass1-D-1500M | P | 0.78 | 0.345 | 49448.1 | 49634.8 | 16.46 | 8090 | 1.57 |
+| pass1-D-1500M | PD | 1.84 | 0.401 | 18531.9 | 63106.3 | 1.28 | 773 | 1.57 |
+| pass1-D-2500M | B0 | 8.42 | 0.292 | 18959.2 | 36887.5 | 10.77 | 2051 | 2.62 |
+| pass1-D-2500M | B2 | 0.91 | 1.333 | 1095.0 | 291116.8 | 14.87 | 5915 | 2.62 |
+| pass1-D-2500M | D2 | 1.30 | 1.131 | 505.2 | 242528.5 | 10.81 | 3002 | 2.62 |
+| pass1-D-2500M | P | 2.30 | 0.213 | 17124.8 | 17252.6 | 5.39 | 1097 | 2.62 |
+| pass1-D-2500M | PD | 3.30 | 0.254 | 8320.1 | 27986.7 | 10.69 | 1759 | 2.62 |
+results in bench/results/phase7-olmoe
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      54%
+               total        used        free      shared  buff/cache   available
+Mem:           15671        5908        1661         386        8994        9762
+/dev/nvme0n1p3 btrfs 498443264 460971564  33802164  94% /home
+/sys/class/bdi/0:286/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe/map.json
+== D: end-to-end llama-bench decode under a memory wall
+1500M D2:           0.44 ± 0.02 
+1500M PD:           1.40 ± 0.22 
+2500M D2:           1.25 ± 0.04 
+2500M PD:           3.21 ± 0.65 
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-1500M | B0 | 3.17 | 0.940 | 115810.4 | 194549.7 | 16.21 | 6351 | 1.57 |
+| D-1500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-1500M | B2 | 0.35 | 8.702 | 6403.2 | 2085474.2 | 12.74 | 34763 | 1.57 |
+| D-1500M | D2 | 0.44 | 8.787 | 2639.2 | 2109587.9 | 4.76 | 11368 | 1.57 |
+| D-1500M | D2-refr20 | 0.47 | 8.303 | 2619.7 | 1994451.9 | 5.15 | 11363 | 1.57 |
+| D-1500M | P | 0.74 | 0.759 | 152829.6 | 153002.0 | 18.14 | 24856 | 1.57 |
+| D-1500M | PD | 1.40 | 1.020 | 72451.6 | 216780.7 | 1.00 | 1626 | 1.57 |
+| D-1500M | PD-refr20 | 1.40 | 1.013 | 67670.4 | 214716.7 | 0.92 | 1165 | 1.57 |
+| D-2500M | B0 | 7.89 | 0.391 | 41993.5 | 60775.6 | 12.03 | 3205 | 2.62 |
+| D-2500M | B0S | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| D-2500M | B2 | 0.87 | 3.603 | 4250.2 | 845356.7 | 14.82 | 17428 | 2.62 |
+| D-2500M | D2 | 1.25 | 3.073 | 1561.3 | 717320.1 | 12.26 | 9860 | 2.62 |
+| D-2500M | D2-refr20 | 1.25 | 3.025 | 1536.0 | 705170.1 | 12.31 | 9548 | 2.62 |
+| D-2500M | P | 2.51 | 0.315 | 43943.3 | 44101.2 | 4.45 | 3756 | 2.62 |
+| D-2500M | PD | 3.21 | 0.502 | 24736.6 | 90252.3 | 2.51 | 2116 | 2.62 |
+| D-2500M | PD-refr20 | 1.09 | 1.415 | 78169.9 | 312190.8 | 0.02 | 890 | 2.62 |
+| pass1-D-1500M | B0 | 1.18 | 0.600 | 39190.5 | 82902.2 | 11.71 | 5000 | 1.57 |
+| pass1-D-1500M | B2 | 0.30 | 3.097 | 2278.3 | 711761.5 | 15.06 | 15733 | 1.57 |
+| pass1-D-1500M | D2 | 0.39 | 3.289 | 1022.4 | 766579.8 | 7.26 | 7223 | 1.57 |
+| pass1-D-1500M | P | 0.78 | 0.345 | 49448.1 | 49634.8 | 16.46 | 8090 | 1.57 |
+| pass1-D-1500M | PD | 1.84 | 0.401 | 18531.9 | 63106.3 | 1.28 | 773 | 1.57 |
+| pass1-D-2500M | B0 | 8.42 | 0.292 | 18959.2 | 36887.5 | 10.77 | 2051 | 2.62 |
+| pass1-D-2500M | B2 | 0.91 | 1.333 | 1095.0 | 291116.8 | 14.87 | 5915 | 2.62 |
+| pass1-D-2500M | D2 | 1.30 | 1.131 | 505.2 | 242528.5 | 10.81 | 3002 | 2.62 |
+| pass1-D-2500M | P | 2.30 | 0.213 | 17124.8 | 17252.6 | 5.39 | 1097 | 2.62 |
+| pass1-D-2500M | PD | 3.30 | 0.254 | 8320.1 | 27986.7 | 10.69 | 1759 | 2.62 |
+results in bench/results/phase7-olmoe

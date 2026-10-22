@@ -1,0 +1,11 @@
+{
+  "events": 20241,
+  "tokens": 98,
+  "prefetch_ops": 10009,
+  "pin_ops": 0,
+  "unpin_ops": 0,
+  "demote_ops": 0,
+  "failed_ops": 0,
+  "budget_clamps": 0,
+  "suppressed_prefetches": 10232
+}

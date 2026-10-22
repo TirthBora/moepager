@@ -1,0 +1,199 @@
+{
+  "tokens": 255,
+  "accesses": 32640,
+  "footprint_bytes": 2830811136,
+  "cold_misses": 742,
+  "reuse_hist_log2": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    11138,
+    19033,
+    1674,
+    53
+  ],
+  "median_reuse_units": 185,
+  "lru_mrc": [
+    {
+      "capacity_bytes": 141540557,
+      "misses": 32640,
+      "miss_bytes": 124334899200,
+      "miss_ratio": 1.0
+    },
+    {
+      "capacity_bytes": 283081114,
+      "misses": 32640,
+      "miss_bytes": 124334899200,
+      "miss_ratio": 1.0
+    },
+    {
+      "capacity_bytes": 424621670,
+      "misses": 32640,
+      "miss_bytes": 124334899200,
+      "miss_ratio": 1.0
+    },
+    {
+      "capacity_bytes": 566162227,
+      "misses": 17151,
+      "miss_bytes": 65633304576,
+      "miss_ratio": 0.5254595588235295
+    },
+    {
+      "capacity_bytes": 707702784,
+      "misses": 16793,
+      "miss_bytes": 64265797632,
+      "miss_ratio": 0.5144914215686275
+    },
+    {
+      "capacity_bytes": 849243341,
+      "misses": 11156,
+      "miss_bytes": 42634199040,
+      "miss_ratio": 0.3417892156862745
+    },
+    {
+      "capacity_bytes": 990783898,
+      "misses": 2212,
+      "miss_bytes": 8443428864,
+      "miss_ratio": 0.06776960784313725
+    },
+    {
+      "capacity_bytes": 1132324454,
+      "misses": 1412,
+      "miss_bytes": 5379244032,
+      "miss_ratio": 0.043259803921568626
+    },
+    {
+      "capacity_bytes": 1273865011,
+      "misses": 1092,
+      "miss_bytes": 4166221824,
+      "miss_ratio": 0.033455882352941176
+    },
+    {
+      "capacity_bytes": 1415405568,
+      "misses": 983,
+      "miss_bytes": 3752902656,
+      "miss_ratio": 0.03011642156862745
+    },
+    {
+      "capacity_bytes": 1556946125,
+      "misses": 953,
+      "miss_bytes": 3636461568,
+      "miss_ratio": 0.029197303921568628
+    },
+    {
+      "capacity_bytes": 1698486682,
+      "misses": 897,
+      "miss_bytes": 3418816512,
+      "miss_ratio": 0.027481617647058823
+    },
+    {
+      "capacity_bytes": 1840027238,
+      "misses": 837,
+      "miss_bytes": 3194044416,
+      "miss_ratio": 0.025643382352941176
+    },
+    {
+      "capacity_bytes": 1981567795,
+      "misses": 792,
+      "miss_bytes": 3021815808,
+      "miss_ratio": 0.02426470588235294
+    },
+    {
+      "capacity_bytes": 2123108352,
+      "misses": 775,
+      "miss_bytes": 2956247040,
+      "miss_ratio": 0.023743872549019607
+    },
+    {
+      "capacity_bytes": 2264648909,
+      "misses": 765,
+      "miss_bytes": 2917613568,
+      "miss_ratio": 0.0234375
+    },
+    {
+      "capacity_bytes": 2406189466,
+      "misses": 761,
+      "miss_bytes": 2902376448,
+      "miss_ratio": 0.023314950980392157
+    },
+    {
+      "capacity_bytes": 2547730022,
+      "misses": 752,
+      "miss_bytes": 2868903936,
+      "miss_ratio": 0.02303921568627451
+    },
+    {
+      "capacity_bytes": 2689270579,
+      "misses": 745,
+      "miss_bytes": 2842509312,
+      "miss_ratio": 0.022824754901960783
+    },
+    {
+      "capacity_bytes": 2830811136,
+      "misses": 742,
+      "miss_bytes": 2830811136,
+      "miss_ratio": 0.0227328431372549
+    }
+  ],
+  "token_reuse": {
+    "mean": 0.47640871062992124,
+    "per_layer": [
+      0.33267716535433073,
+      0.28838582677165353,
+      0.4094488188976378,
+      0.32086614173228345,
+      0.49901574803149606,
+      0.6062992125984252,
+      0.6707677165354331,
+      0.7293307086614174,
+      0.6087598425196851,
+      0.5718503937007874,
+      0.48868110236220474,
+      0.5969488188976378,
+      0.29970472440944884,
+      0.3248031496062992,
+      0.38041338582677164,
+      0.49458661417322836
+    ]
+  },
+  "popularity": {
+    "top10_share": 0.5490196078431372,
+    "norm_entropy": 0.7003419577351926,
+    "units_touched": 0.724609375
+  },
+  "predictability": {
+    "transition_recall": 0.7780065359477124,
+    "popularity_recall": 0.6574183006535947,
+    "reuse_recall": 0.48408496732026146,
+    "transition_concentration": 0.4473080065359477
+  },
+  "timing": {
+    "layer_gap_p10": 1458512,
+    "layer_gap_p50": 1780592,
+    "layer_gap_p90": 2670174,
+    "layer_gap_p50_per_layer": [
+      1846487,
+      1832933,
+      1711021,
+      1726907,
+      1799557,
+      1723850,
+      1725978,
+      1821673,
+      1736660,
+      1741886,
+      1842219,
+      1700923,
+      1758648,
+      1851787,
+      1889569,
+      0
+    ],
+    "token_p50": 33227944,
+    "token_p90": 49828121
+  }
+}

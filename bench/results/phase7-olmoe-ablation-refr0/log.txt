@@ -1,0 +1,30 @@
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      70%
+               total        used        free      shared  buff/cache   available
+Mem:           15671        5791        1867         386        8918        9880
+/dev/nvme0n1p3 btrfs 498443264 460971184  33802416  94% /home
+/sys/class/bdi/0:286/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=olmoe layers=16 moe_layers=16 experts=64 top_k=8 units=1024 expert_bytes=3.901GB dense_bytes=0.311GB unit_bytes[min/avg/max]=3538944/3809280/4079616 warnings=0
+warning: on this CPU, default llama.cpp repacks 40 expert tensors (77% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-olmoe-ablation-refr0/map.json
+== D: end-to-end llama-bench decode under a memory wall
+2500M PD:           5.42 ± 1.07 
+| budget | config | tok/s | SSD GB/token | majflt/token | refault/token | PSI some avg10 | PSI stall ms | peak GB |
+|---|---|---|---|---|---|---|---|---|
+| D-2500M | PD | 5.42 | 0.395 | 13889.4 | 63793.0 | 11.23 | 2856 | 2.62 |
+results in bench/results/phase7-olmoe-ablation-refr0

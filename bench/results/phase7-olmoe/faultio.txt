@@ -1,0 +1,42 @@
+-- seed 1 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.23 | 16.85 | 5.01 |
+| willneed | 1.51 | 2.52 | 1.00 |
+| pread | 0.46 | 8.26 | 1.24 |
+-- seed 1 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.15 | 25.93 | 4.89 |
+| willneed | 1.42 | 2.68 | 1.00 |
+| pread | 0.56 | 6.75 | 1.24 |
+-- seed 2 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.24 | 15.73 | 4.49 |
+| willneed | 1.70 | 2.24 | 1.00 |
+| pread | 0.56 | 6.80 | 1.24 |
+-- seed 2 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.21 | 18.09 | 4.63 |
+| willneed | 0.97 | 3.92 | 1.00 |
+| pread | 0.55 | 6.90 | 1.24 |
+-- seed 3 willneed-chunk-kb 128
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.19 | 20.13 | 4.90 |
+| willneed | 1.49 | 2.56 | 1.00 |
+| pread | 0.44 | 8.74 | 1.24 |
+-- seed 3 willneed-chunk-kb 0
+file=/home/AeroChrome/models/olmoe-1b-7b-0924-q4_k_m.gguf size=4.21GB units=32 unit=3.81MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.21 | 18.57 | 5.10 |
+| willneed | 1.23 | 3.09 | 1.00 |
+| pread | 0.44 | 8.58 | 1.24 |

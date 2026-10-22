@@ -1,0 +1,16 @@
+source=llama-evalcb observation=Full tokens=255 accesses=32640
+footprint=2.831GB cold_misses=742 median_reuse_units=Some(185)
+token_reuse=0.476 top10_share=0.549 norm_entropy=0.700 units_touched=0.725
+next-layer recall@k: transitions=0.778 popularity=0.657 prev-token=0.484 (concentration top4=0.447)
+layer gap p10/p50/p90 = 1.459/1.781/2.670 ms; token p50 = 33.228 ms
+LRU miss-ratio curve (capacity as % of footprint):
+    10%  cap=0.283GB  miss_ratio=1.000  miss_bytes/token=0.488GB
+    20%  cap=0.566GB  miss_ratio=0.525  miss_bytes/token=0.257GB
+    30%  cap=0.849GB  miss_ratio=0.342  miss_bytes/token=0.167GB
+    40%  cap=1.132GB  miss_ratio=0.043  miss_bytes/token=0.021GB
+    50%  cap=1.415GB  miss_ratio=0.030  miss_bytes/token=0.015GB
+    60%  cap=1.698GB  miss_ratio=0.027  miss_bytes/token=0.013GB
+    70%  cap=1.982GB  miss_ratio=0.024  miss_bytes/token=0.012GB
+    80%  cap=2.265GB  miss_ratio=0.023  miss_bytes/token=0.011GB
+    90%  cap=2.548GB  miss_ratio=0.023  miss_bytes/token=0.011GB
+   100%  cap=2.831GB  miss_ratio=0.023  miss_bytes/token=0.011GB

@@ -1,0 +1,25 @@
+[
+ {
+  "budget": "D-2500M",
+  "config": "PD",
+  "tok_s": 2.05,
+  "tokens": 32,
+  "ssd_gb_per_token": 0.78640512,
+  "majflt_per_token": 41022.09375,
+  "refault_per_token": 159347.875,
+  "psi_some_avg10": 0.99,
+  "psi_some_stall_ms": 730.615,
+  "peak_gb": 2.62144,
+  "daemon": {
+   "events": 19288,
+   "tokens": 98,
+   "prefetch_ops": 10667,
+   "pin_ops": 0,
+   "unpin_ops": 0,
+   "demote_ops": 0,
+   "failed_ops": 0,
+   "budget_clamps": 0,
+   "suppressed_prefetches": 8621
+  }
+ }
+]
