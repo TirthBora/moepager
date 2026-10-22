@@ -43,6 +43,9 @@ struct Args {
     /// Disable expert-completion readahead.
     #[arg(long)]
     no_completion: bool,
+    /// Ignore repeated misses of a unit for this long after prefetching it.
+    #[arg(long, default_value_t = 20.0)]
+    refractory_ms: f64,
     /// Enable cross-layer predictive prefetch (V policy).
     #[arg(long)]
     predict: bool,
@@ -80,6 +83,7 @@ fn main() -> Result<()> {
         ..Default::default()
     };
     cfg.prefetch.completion = !a.no_completion;
+    cfg.refractory_ns = (a.refractory_ms * 1e6) as u64;
     cfg.prefetch.predict = a.predict;
     cfg.token_slack = (map.n_layers / 8) as u16;
     let src: Box<dyn EventSource> = match a.source.split_once(':') {
@@ -123,6 +127,15 @@ fn main() -> Result<()> {
                 let maps = find_file_mapping(pid, dev, md.ino(), Some(&a.gguf))?;
                 match maps.iter().max_by_key(|m| m.end - m.start) {
                     Some(m) => {
+                        if mp_os::mapping_vmflags(pid, m.start)?
+                            .is_some_and(|f| !f.split_whitespace().any(|x| x == "rr"))
+                        {
+                            eprintln!(
+                                "warning: pid {pid} maps the model with fault read-around on; \
+                                 neighbouring experts will pollute the cache. Run the engine with \
+                                 LD_PRELOAD=tools/preload/libmoepager_preload.so (see README)"
+                            );
+                        }
                         ops.target = Some(TargetMapping::open(
                             pid,
                             m.start,

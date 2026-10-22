@@ -28,26 +28,37 @@ fn dry_run_on_synthetic_trace() {
     let (h, ev) = mp_synth::generate(&p);
     let trace = dir.join("t.mpt");
     mp_trace::write_expert_file(&trace, &h, &ev).unwrap();
-    let stats = dir.join("stats.json");
-    let out = Command::new(env!("CARGO_BIN_EXE_moepagerd"))
-        .arg(&gguf)
-        .args(["--ops", "mock", "--policy", "v", "--budget-mb", "1"])
-        .arg(format!("--source=trace:{}", trace.display()))
-        .arg("--stats-json")
-        .arg(&stats)
-        .output()
-        .unwrap();
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let c: serde_json::Value = serde_json::from_slice(&std::fs::read(&stats).unwrap()).unwrap();
+    let run = |extra: &[&str], stats: &std::path::Path| -> serde_json::Value {
+        let out = Command::new(env!("CARGO_BIN_EXE_moepagerd"))
+            .arg(&gguf)
+            .args(["--ops", "mock", "--policy", "v", "--budget-mb", "1"])
+            .args(extra)
+            .arg(format!("--source=trace:{}", trace.display()))
+            .arg("--stats-json")
+            .arg(stats)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice(&std::fs::read(stats).unwrap()).unwrap()
+    };
+    // Without the refractory window every observed miss triggers completion.
+    let c = run(&["--refractory-ms", "0"], &dir.join("stats0.json"));
     assert_eq!(c["events"], 40 * 2 * 2);
     assert_eq!(c["tokens"], 39);
     assert_eq!(
         c["prefetch_ops"], 160,
         "completion readahead on every observed miss"
     );
+    // Default window: synthetic tokens are < 20 ms apart, so repeats are suppressed.
+    let d = run(&[], &dir.join("stats.json"));
+    assert_eq!(
+        d["prefetch_ops"].as_u64().unwrap() + d["suppressed_prefetches"].as_u64().unwrap(),
+        160
+    );
+    assert!(d["suppressed_prefetches"].as_u64().unwrap() > 0);
     assert_eq!(c["failed_ops"], 0);
 }

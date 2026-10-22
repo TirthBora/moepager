@@ -57,6 +57,11 @@ pub struct DaemonConfig {
     pub cost: CostModel,
     /// Layer drop that marks a new token (see `mp_trace::infer_tokens`).
     pub token_slack: u16,
+    /// Ignore further misses of a unit for this long after prefetching it.
+    /// Each unit has one sentinel per slice and the daemon's own completion
+    /// readahead flips the other sentinels, so without this every real miss
+    /// would trigger up to three full-unit prefetches.
+    pub refractory_ns: u64,
 }
 
 impl Default for DaemonConfig {
@@ -69,6 +74,7 @@ impl Default for DaemonConfig {
             prefetch: PrefetchConfig::default(),
             cost: CostModel::default(),
             token_slack: 2,
+            refractory_ns: 20_000_000,
         }
     }
 }
@@ -84,6 +90,8 @@ pub struct Counters {
     pub failed_ops: u64,
     /// Times the pin budget was cut because pinning failed (RLIMIT_MEMLOCK).
     pub budget_clamps: u64,
+    /// Completion prefetches skipped by the per-unit refractory window.
+    pub suppressed_prefetches: u64,
 }
 
 pub struct Daemon<O: PageCacheOps> {
@@ -103,6 +111,8 @@ pub struct Daemon<O: PageCacheOps> {
     lru: std::collections::VecDeque<u32>,
     lru_bytes: u64,
     sizes: Vec<u64>,
+    /// Time of the last completion prefetch per dense unit.
+    last_prefetch_ns: Vec<Option<u64>>,
 }
 
 impl<O: PageCacheOps> Daemon<O> {
@@ -135,6 +145,7 @@ impl<O: PageCacheOps> Daemon<O> {
             last_layer: None,
             lru: Default::default(),
             lru_bytes: 0,
+            last_prefetch_ns: vec![None; sizes.len()],
             sizes,
         }
     }
@@ -172,7 +183,14 @@ impl<O: PageCacheOps> Daemon<O> {
         self.stats.observe(ev.layer, ev.expert, Seen::Miss, ev.t_ns);
         let u = self.dense(ev.layer, ev.expert);
         if let Some(a) = self.planner.on_miss(u) {
-            self.apply(vec![a]);
+            let last = &mut self.last_prefetch_ns[u as usize];
+            let recent = last.is_some_and(|t| ev.t_ns.saturating_sub(t) < self.cfg.refractory_ns);
+            if recent {
+                self.counters.suppressed_prefetches += 1;
+            } else {
+                *last = Some(ev.t_ns);
+                self.apply(vec![a]);
+            }
         }
         match self.cfg.policy {
             Policy::WillneedAll => {
@@ -457,5 +475,27 @@ mod tests {
         assert_eq!(d.counters.prefetch_ops, 4);
         d.on_event(&ev(0, 1, 0)); // last layer: nothing further
         assert_eq!(d.counters.prefetch_ops, 4);
+    }
+
+    #[test]
+    fn refractory_window_suppresses_duplicate_completion() {
+        let cfg = DaemonConfig {
+            policy: Policy::None,
+            refractory_ns: 1_000,
+            ..Default::default()
+        };
+        let mut d = Daemon::new(toy_map(2, 4), cfg, MockOps::new(4096));
+        let at = |t: u64| ExpertEvent {
+            t_ns: t,
+            token: 0,
+            layer: 0,
+            expert: 1,
+        };
+        d.on_event(&at(10)); // first miss: prefetch 3 slices
+        d.on_event(&at(500)); // another sentinel of the same unit: suppressed
+        d.on_event(&at(5_000)); // after the window: prefetched again
+        assert_eq!(d.counters.prefetch_ops, 2);
+        assert_eq!(d.counters.suppressed_prefetches, 1);
+        assert_eq!(d.ops.calls.len(), 6);
     }
 }
