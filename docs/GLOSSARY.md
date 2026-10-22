@@ -41,8 +41,15 @@ A reference guide for technical terminology used throughout the `moepager` proje
 
 ### Mathematical Formulations
 
-- **EWMA Access Rate ($\text{rate}_t(e)$)**:
-  \text{rate}_t(e) = \alpha \cdot \mathbf{1}_{\{e \in U_t\}} + (1 - \alpha) \cdot \text{rate}_{t-1}(e)
-  where $\alpha = 1 - 2^{-1 / H}$ with half-life $ tokens.
-- **Value Metric (e)$**:
-  V(e) = \frac{\text{rate}(e) \cdot (t_{\text{fault}} + s_e / B_{\text{demand}})}{s_e}
+- **Rate estimate rate(e)** (`mp-core` `OnlineStats`). This is not a plain
+  EWMA. Under miss-only observation it is
+
+      rate(e) = (decayed misses of e + 0.05·w·prior) / (decayed tokens e was exposed, i.e. not pinned + 0.05·w)
+
+  Each token's weight grows by g = 2^(1/H) (half-life H tokens), with
+  periodic renormalisation. Pinned units accrue neither misses nor exposure,
+  so their estimate is frozen; random exploration un-pins a few to refresh
+  them.
+- **Value per byte**
+
+      V(e) = rate(e) · (t_fault + s_e / B_demand) / s_e

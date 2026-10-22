@@ -6,6 +6,6 @@ This document describes the low-level queueing model implemented in `mp-sim` and
 NVMe solid-state storage operates with asynchronous command submission across submission and completion queues. Under sequential access or large block sizes, drive controllers sustain high bandwidth. Under random read-around faults with low queue depths, throughput degrades drastically.
 
 `mp-sim` models the NVMe channel as a single FIFO queue with:
-- **Base Fault Latency ($t_{\text{fault}}$)**: Kernel trap, context switch, and flash address lookup overhead (~15–30 µs).
+- **Base Fault Latency ($t_{\text{fault}}$)**: Kernel trap, context switch, and flash address lookup overhead. The simulator default is 100 µs per unit, a guess: per-unit fault cost was not measured separately; Experiment C measures effective bandwidth instead.
 - **Transfer Latency**: Calculated by slice size divided by bandwidth: $s / B$.
 - **Arrival & Stall**: A demand miss blocks inference until completion, while in-flight prefetches occupy queue depth.
