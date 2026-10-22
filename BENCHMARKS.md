@@ -71,6 +71,13 @@ kernel 6.19). There is a 30 s idle period before the run.
 | D3 | `-nr` + `moepagerd --policy v --prefetch completion,predict` |
 | O | Belady* oracle (simulator only, on the ground-truth trace) |
 
+Configurations actually run in Phase 7 (`bench/phase7.sh`, experiment D):
+B0, **B0S** (default llama.cpp with swap off, so held to the budget), B2,
+D2 (`-nr` + moepagerd completion readahead), **P** (`-nr` + the
+`tools/preload` shim, read-around off) and **PD** (P + moepagerd). B1, B3–B6,
+D1 and D3 were not run: B3 needs root; pinning variants need
+`CAP_IPC_LOCK`.
+
 ## Results
 
 ### Microbenchmark: fault-driven vs bulk read bandwidth (Experiment C)
@@ -101,19 +108,70 @@ Caveats:
   real model it is other experts, which may be used later.
 - The numbers are from one machine and one filesystem.
 
+### Experiment C on the real model file (OLMoE, Phase 7)
+
+`bench/results/phase7-olmoe/faultio.txt`: 32 cold 3.8 MB units × 3 seeds,
+8 threads.
+
+| method | GB/s | amplification |
+|---|---|---|
+| mmap faults | 0.15–0.24 | 4.8× |
+| WILLNEED, one call/slice | 0.97–1.42 | 1.00× |
+| WILLNEED, 128 KiB chunks | 1.49–1.70 | 1.00× |
+| pread 1 MiB | 0.44–0.56 | 1.24× |
+
 ### Simulator vs kernel validation (Experiment B)
 
-| model | budget | sim LRU miss GB/token | kernel miss GB/token | ratio |
-|---|---|---|---|---|
-| TBD | TBD | TBD | TBD | TBD |
+Real prose trace (255 tokens, 0.488 GB of experts touched per token),
+replayed with mmap and 4 threads under a cgroup wall with swap off
+(`bench/results/phase7-olmoe/B-*`).
+
+| model | budget | variant | tok/s | SSD GB/token | majflt/token |
+|---|---|---|---|---|---|
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | kernel default | 0.79 | 1.80 | 956 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | read-around off | 0.75 | 0.16 | 38,802 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | moepagerd (read-around on) | 0.66 | 1.61 | 881 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | read-around off + moepagerd | 2.58 | 0.05 | 12,342 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | kernel default | 3.25 | 0.37 | 338 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | read-around off | 5.81 | 0.02 | 5,704 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | moepagerd (read-around on) | 2.82 | 0.36 | 321 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | read-around off + moepagerd | 2.48 | 0.05 | 12,641 |
+
+Simulator LRU at 1.5 GB (≈ 37 % of expert bytes) predicts ≈ 0.14 GB/token,
+which matches the read-around-off kernel run (0.16). With read-around on,
+the kernel reads ≈ 12× more: pollution the simulator does not model.
 
 ### End-to-end (Experiment D)
 
-| model | budget | config | tok/s | SSD GB/token | majflt/token | memory PSI avg10 | co-tenant p95× |
-|---|---|---|---|---|---|---|---|
-| Qwen3-30B-A3B Q4_K_M | TBD | B0…D3 | TBD | TBD | TBD | TBD | TBD |
-| gpt-oss-20b MXFP4 | TBD | B0…D3 | TBD | TBD | TBD | TBD | TBD |
-| OLMoE-1B-7B Q4_K_M | TBD | B0…D3 | TBD | TBD | TBD | TBD | TBD |
+llama-bench `-p 0 -n 32 -r 3 -lm mmap -t 8`, cold start, swap off unless
+stated. tok/s is mean ± sd. Per-token metrics are divided by 97 decoded
+tokens (3 × 32 + 1 warmup). Raw outputs:
+`bench/results/phase7-olmoe/D-*`, `report.md`, `journal-final-pass.txt`.
+Co-tenant slowdown was not measured.
+
+| model | budget | config | tok/s | SSD GB/token | majflt/token | memory PSI avg10 |
+|---|---|---|---|---|---|---|
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | B0 (zram allowed; 2.5 GB swap peak) | 3.17 ± 0.26 | 0.31 | 38,206 | 16.2 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | B0S | OOM-killed | — | — | — |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | B2 | 0.35 ± 0.01 | 2.87 | 2,112 | 12.7 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | D2 | 0.44 ± 0.02 | 2.90 | 871 | 4.8 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | P | 0.74 ± 0.07 | 0.25 | 50,418 | 18.1 |
+| OLMoE-1B-7B Q4_K_M | 1.5 GB | **PD** | **1.40 ± 0.22** | 0.34 | 23,902 | 1.0 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | B0 (zram allowed; 2.3 GB swap peak) | 7.89 ± 1.37 | 0.13 | 13,854 | 12.0 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | B0S | OOM-killed | — | — | — |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | B2 | 0.87 ± 0.02 | 1.19 | 1,402 | 14.8 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | D2 | 1.25 ± 0.04 | 1.01 | 515 | 12.3 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | P | 2.51 ± 0.51 | 0.10 | 14,497 | 4.5 |
+| OLMoE-1B-7B Q4_K_M | 2.5 GB | **PD** | **3.21 ± 0.65** | 0.17 | 8,161 | 2.5 |
+| Qwen3-30B-A3B Q4_K_M | — | — | TBD (not run: disk space) | TBD | TBD | TBD |
+| gpt-oss-20b MXFP4 | — | — | TBD (not run) | TBD | TBD | TBD |
+
+PD at 2.5 GB across three independent sessions: 3.30 (1 rep), 5.42 ± 1.07,
+3.21 ± 0.65.
+
+Ablation: a 20 ms per-unit refractory window gave 1.09 ± 0.04 and
+2.05 ± 0.05, so it is now off by default
+(`bench/results/phase7-olmoe-ablation-refr*`).
 
 ### Simulator results on synthetic traces
 Synthetic traces only exercise the tooling. They are **not** evidence about

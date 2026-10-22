@@ -7,41 +7,36 @@ where useful.
 
 ## Current status
 
-**Phases 0–6 are complete. This is the planned ~50 % stop point.**
+**Phase 7 (go/no-go) is complete: GO, with narrowed scope.** Measured on
+OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
+`bench/results/phase7-olmoe/`, write-up in `docs/report/REPORT.pdf`.
 
-- Phase 0 verdict: **KEEP, MODIFIED** (IDEA_REVIEW.md §7).
-- Built and tested without a model, root or llama.cpp:
-  - GGUF expert map (verified on real Qwen3-30B-A3B, gpt-oss-20b and OLMoE
-    headers; maps in `data/maps/`);
-  - `.mpt` trace format; synthetic generator; analyzer with exact LRU curve;
-  - mp-core policy code; simulator with Belady\* (LRU cross-checked exactly
-    against the analyzer);
-  - OS layer (mincore, cachestat, chunked WILLNEED, mlock,
-    process_madvise);
-  - sentinel and scan recorders (end to end on a real file);
-  - bpftrace script and ingest;
-  - daemon (mock dry runs and a live smoke run against the replayer);
-  - rootless cgroup runner, llama.cpp matrix script, metric parsers,
-    co-tenant probe;
-  - `make demo` / `make bench` / `make microbench`.
-- Tests: 80 Rust + 12 Python, all passing; CI green (fmt, clippy, tests,
-  ruff, pytest, demo).
-- Measured so far (smoke only): fault-driven expert reads 0.44–0.49 GB/s
-  with 3.3–3.7× amplification, versus 2.37–2.46 GB/s for chunked WILLNEED
-  on the dev laptop (BENCHMARKS.md). K2 does not fire on this machine.
+- **The product is now:** llama.cpp `--repack 0` + `tools/preload` shim
+  (`MADV_RANDOM`, read-around off) + `moepagerd --policy v --budget-mb 0`
+  (expert-completion readahead).
+- **Result:** 3.7–4.0× faster than the stock page-cache path, with 7–8×
+  less SSD traffic, at 1.5 and 2.5 GB budgets.
+- **Comparison with default llama.cpp:** it is OOM-killed at those budgets
+  without swap. With zram it is faster, but uses 2.3–2.5 GB of RAM-backed
+  swap beyond the budget.
+- **Demoted:** V(e) pinning (LFU did better in simulation; needs
+  `CAP_IPC_LOCK`) and predictive prefetch.
+- **Tests:** 85 Rust + 13 Python, all passing; clippy and ruff clean.
+- **Team docs:** Ayush's docs branch (`AyushSinha2210/moepager@ayush`) is
+  *not merged*. Merging was blocked in this session as external-code
+  integration. Its errors are listed in
+  `docs/report/REVIEW_AYUSH_BRANCH.md`.
 
 ## Next up
 
-**Phase 7, the go/no-go on real hardware.** Follow
-docs/RUNBOOK_GO_NO_GO.md:
-1. P7.1: write the ground-truth capture tool (libllama `cb_eval` on
-   `ffn_moe_topk-*`) and `moepager import-csv`.
-2. P7.2: build llama.cpp, download OLMoE / Qwen3-30B-A3B / gpt-oss-20b.
-3. P7.3–P7.6: experiments A–D. Expect to debug `bench/run_llama.sh` on
-   its first real run.
-4. P7.7: decide against K1–K4 and log it below.
-
-Do not start phase 8+ before P7.7.
+1. **P8.3 / P8.5 / P8.7** (below): same-cgroup check, a fallback when
+   WILLNEED is ineffective, and an LFU-based residency policy.
+2. **P10.1** validation on a second machine (ext4, disk swap), so that
+   default llama.cpp can be compared at equal memory, and on Qwen3-30B-A3B
+   (needs ~19 GB of free disk).
+3. Upstream: propose a llama.cpp option for `MADV_RANDOM` on expert tensors
+   (would remove the shim).
+4. Merge Ayush's docs branch after applying the review fixes.
 
 ## Phases
 
@@ -104,22 +99,26 @@ Do not start phase 8+ before P7.7.
 - [x] P6.5 Python metric parsers + report table, with tests
 - [x] P6.6 `make demo`, `make bench` entry points
 
-### Phase 7 — Go/no-go on real hardware ← NEXT
-- [ ] P7.1 Ground-truth expert trace capture tool (libllama eval callback on `ffn_moe_topk-*`) + `moepager import-csv`, experiment-only (see docs/RUNBOOK_GO_NO_GO.md)
-- [ ] P7.2 Download models (OLMoE, Qwen3-30B-A3B Q4_K_M, gpt-oss-20b MXFP4); build llama.cpp
-- [ ] P7.3 Experiment A: simulator sweeps on real traces
-- [ ] P7.4 Experiment B: `moepager replay` under memory.max versus simulator LRU (validation)
-- [ ] P7.5 Experiment C: `moepager fault-io` full run (fault vs bulk bandwidth)
-- [ ] P7.6 Experiment D: end-to-end llama.cpp baselines (MGLRU on/off needs root)
-- [ ] P7.7 Decide go/no-go against K1–K4, record in decision log
+### Phase 7 — Go/no-go on real hardware ✅ (GO, narrowed)
+- [x] P7.1 Ground-truth expert trace capture tool (libllama eval callback on `ffn_moe_topk-*`) + `moepager import-csv`, experiment-only (see docs/RUNBOOK_GO_NO_GO.md)
+- [x] P7.2 Build llama.cpp (970b51c); download OLMoE. Qwen3/gpt-oss not run (disk space): moved to P10.1
+- [x] P7.3 Experiment A: simulator sweeps on real traces
+- [x] P7.4 Experiment B: `moepager replay` under memory.max versus simulator LRU (validation)
+- [x] P7.5 Experiment C: `moepager fault-io` full run (fault vs bulk bandwidth)
+- [x] P7.6 Experiment D: end-to-end llama-bench, configs B0/B0S/B2/D2/P/PD (MGLRU-off B3 not run: needs root)
+- [x] P7.7 Decide go/no-go against K1–K4, record in decision log
 
-### Phase 8 — Live daemon (only if go)
+### Phase 8 — Live daemon hardening ← NEXT (re-scoped after Phase 7)
 - [ ] P8.1 libbpf-rs CO-RE tracer for filemap tracepoints (inode filter in-kernel)
 - [ ] P8.2 Live actuators hardened (mlock budget accounting, process_madvise demotion, fallback chain)
 - [ ] P8.3 Same-cgroup enforcement and accounting checks
 - [ ] P8.4 Optional DAMON-assisted hit observation (root)
 - [ ] P8.5 `MADV_POPULATE_READ` worker fallback for prefetch when WILLNEED is ineffective
-- [ ] P8.6 Compute-time (not wall-time) layer estimate for the prefetch deadline budget
+- [ ] P8.6 Compute-time (not wall-time) layer estimate for the prefetch deadline budget (low priority: prediction prefetch demoted)
+- [x] P8.8 Warn when the engine maps the model with read-around on (`/proc/pid/smaps` VmFlags `rr`)
+- [x] P8.9 Read-around shim (`tools/preload`, ADR 0011)
+- [x] P8.10 Refractory-window ablation; kept, but off by default (doubled misses when on)
+- [ ] P8.7 Replace V(e) by an LFU-based residency policy (better in simulation) and evaluate with `CAP_IPC_LOCK`
 
 ### Phase 9 — Co-tenant protection
 - [ ] P9.1 PSI-driven budget controller (`/proc/pressure/memory`, cgroup `memory.pressure`)
@@ -138,23 +137,33 @@ Do not start phase 8+ before P7.7.
 
 **Untested on real hardware (no llama.cpp, model, root or extra
 capabilities in the dev session):**
-- anything against a running llama.cpp: live daemon (`moepagerd --ops
-  linux --source sentinel`), `bench/run_llama.sh`, and the B0–D3 configs;
+- `bench/run_llama.sh` (superseded by `bench/phase7.sh`, which *was* run);
+  the live daemon is now measured with llama-bench, but only on OLMoE and
+  on one machine;
 - `bpf/moepager.bt` (needs root/bpftrace) and the bpftrace ingest on real
   output (only on sample text);
 - pinning beyond the 8 MB `RLIMIT_MEMLOCK` (needs `CAP_IPC_LOCK`) and
   `process_madvise(MADV_COLD)` demotion (needs `CAP_SYS_NICE`);
 - MGLRU-off baseline B3 (needs root);
 - co-tenant probe under real memory pressure;
-- simulator fidelity versus the real kernel (Experiment B), and every
-  routing statistic of real models (all traces so far are synthetic);
-- the repack claim (measure RSS anon vs file with and without `-nr`).
+- larger models (Qwen3-30B-A3B, gpt-oss-20b) end to end; ext4; disk swap.
 
 **Known issues:**
 
 - Repack default: llama.cpp on AVX2 repacks Q4_0/Q4_K/IQ4_NL/MXFP4 into
-  anonymous memory. moepager needs `--no-repack`. Verified from source only,
-  not yet measured.
+  anonymous memory. moepager needs `--no-repack`. Measured: default
+  llama.cpp's cgroup swapped 2.3–2.5 GB, and was OOM-killed without swap.
+- **Read-around is the dominant cost** (Phase 7). moepagerd with
+  read-around on helps only 1.3–1.4×. Its sentinels fire on polluted
+  pages (331k events for 32k real accesses in replay). Always run the
+  engine with the shim.
+- **V(e) residency underperforms LFU** in simulation on real traces, and
+  is worse than LRU at 15 % capacity.
+- **Run-to-run variance** of PD at 2.5 GB is high: 3.2–5.4 tok/s across
+  sessions.
+- llama.cpp `--lazy-mode on` puts weights in anonymous memory: OOM-killed
+  under the wall. `--numa` applies `MADV_RANDOM` only on multi-node
+  machines.
 
 - Prediction prefetch derives its deadline budget from the *observed* layer
   time. Under I/O stalls that estimate includes stall time, so the budget
@@ -209,5 +218,9 @@ capabilities in the dev session):**
 | 2026-09-29 | Prefetch reframed around expert-completion readahead; prediction prefetch kept behind a flag | fault-io smoke run: ≈4× bandwidth gap between mmap faults and bulk WILLNEED. Simulator: prediction wastes ≈0.4 GB/token on synthetic traces |
 | 2026-09-29 | Simulator cost defaults = measured dev-laptop numbers (0.45 / 2.0 GB/s) | Replace guessed 1 / 3 GB/s with measurements; re-measure per machine |
 | 2026-09-30 | Chunk WILLNEED into 128 KiB requests | The kernel truncates each WILLNEED to the device readahead size (found via CI) |
+| 2026-10-23 | Phase 7 decision: **GO, narrowed** to read-around off + completion readahead | K1/K2 did not fire; read-around pollution dominant; PD 3.7–4.0× over B2 (BENCHMARKS.md) |
+| 2026-10-23 | Ship an optional LD_PRELOAD read-around shim (ADR 0011) | No stock llama.cpp option disables read-around on single-node machines; `--lazy-mode` OOMs |
+| 2026-10-23 | Refractory window off by default | Ablation: 20 ms window doubled misses, PD 2.5 GB 5.4 → 2.1 tok/s |
+| 2026-10-23 | Demote V(e) pinning and prediction prefetch to research options | LFU beat V(e) in simulation; prediction wasted bandwidth; pinning needs privileges |
 | 2026-10-01 | Bulk bandwidth default 2.4 GB/s (chunked WILLNEED smoke) | Re-measured after the chunking fix |
 | 2026-10-08 | Stop at end of phase 6 (≈50 %) | Planned scope. Deferred to later phases: real-hardware runs (P7), live eBPF/daemon hardening (P8), PSI tuning (P9), dashboard (P10) |

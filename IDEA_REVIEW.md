@@ -11,6 +11,23 @@ deliverable is a go/no-go experiment with explicit kill criteria (§6). The
 simulator, trace tooling and harness built in this phase are what make that
 experiment possible.
 
+> **Phase 7 outcome (2026-10-23, OLMoE-1B-7B on the dev laptop, see
+> BENCHMARKS.md): GO, with narrowed scope.**
+> - **K1 (policy gap)** did not fire: Belady\* saves 34–74 % of LRU's
+>   misses. But our online V(e) policy captured little of it; LFU did
+>   better.
+> - **K2 (bandwidth gap)** did not fire: chunked WILLNEED is ≈ 7× faster
+>   than faulting, measured on the model file itself.
+> - **K3 (beaten by default llama.cpp):** at equal memory, default
+>   llama.cpp is OOM-killed. With zram it is faster, but it spills
+>   2.3–2.5 GB of RAM-backed swap outside the budget.
+> - **The unanticipated dominant factor is fault read-around pollution**
+>   (4 MiB window on btrfs, 3.7–4.8× amplification). Read-around off (64-line
+>   `LD_PRELOAD` shim) plus moepagerd completion readahead gave 3.7–4.0×
+>   over the stock page-cache path. Completion readahead with read-around
+>   left on barely helps.
+> - §§1–6 below are kept as written before measuring.
+
 Legend: ✅ verified (how is stated), ⚠️ partly true / needs care,
 ❌ wrong, 🔬 unverified, to measure.
 
