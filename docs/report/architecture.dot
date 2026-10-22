@@ -1,0 +1,51 @@
+// moepager system architecture. Render: dot -Tpng -Gdpi=200 architecture.dot -o architecture.png
+digraph moepager {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=11, nodesep=0.35, ranksep=0.55, pad=0.2,
+         label="moepager: black-box, expert-aware page-cache management (no engine changes, no weight copies)",
+         labelloc=t, fontsize=13];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#ffffff", color="#555555"];
+  edge  [fontname="Helvetica", fontsize=9, color="#444444"];
+
+  subgraph cluster_offline {
+    label="Offline (once per model)"; style="rounded,dashed"; color="#888888";
+    gguf  [label="GGUF model file\n(on NVMe)", shape=cylinder, fillcolor="#eef3fb"];
+    map   [label="mp-gguf\nheader parser → ExpertMap\n(layer, expert) → 3 slices\n+ sentinel pages", fillcolor="#eef3fb"];
+    gguf -> map [label="header only"];
+  }
+
+  subgraph cluster_user {
+    label="User space"; style="rounded"; color="#888888";
+    engine [label="Unmodified inference engine\n(llama.cpp, -nr, mmap)", fillcolor="#fff4e6"];
+    subgraph cluster_daemon {
+      label="moepagerd (unprivileged daemon)"; style="rounded,filled"; fillcolor="#f2f8f2"; color="#5a8a5a";
+      obs   [label="Observation\nsentinel mincore() poll\n(or eBPF filemap tracepoint)"];
+      stats [label="mp-core OnlineStats\nmiss-only rates,\ntransitions, layer time"];
+      pol   [label="Policies\n• completion readahead\n• V(e) residency (pin/unpin)\n• optional prediction"];
+      act   [label="mp-os PageCacheOps\nfadvise(WILLNEED, 128 KiB chunks)\nmlock / munlock\nprocess_madvise(MADV_COLD)"];
+      obs -> stats -> pol -> act;
+    }
+  }
+
+  subgraph cluster_kernel {
+    label="Linux kernel"; style="rounded"; color="#888888";
+    pc  [label="Shared page cache\n(model folios)", shape=folder, fillcolor="#fbeeee"];
+    mm  [label="Reclaim (MGLRU)\ncgroup v2 memory.max\nPSI", fillcolor="#fbeeee"];
+    pc -> mm [dir=both, style=dashed, arrowsize=0.6];
+  }
+
+  map    -> obs   [label="sentinels", style=dashed];
+  map    -> act   [label="slice offsets", style=dashed];
+  engine -> pc    [label="page faults on\nexpert slices"];
+  gguf   -> pc    [label="demand reads /\nbulk readahead"];
+  pc     -> obs   [label="residency\n(misses only)"];
+  act    -> pc    [label="hints: prefetch,\npin, demote"];
+
+  subgraph cluster_eval {
+    label="Evaluation toolchain"; style="rounded,dashed"; color="#888888";
+    gt   [label="moe_trace (experiment only)\nllama.cpp eval callback\n→ ground-truth routing", fillcolor="#f5f0fb"];
+    sim  [label="mp-analyze / mp-sim\nreuse distance, LRU curve,\nBelady* oracle, policy sweeps", fillcolor="#f5f0fb"];
+    bench[label="bench/: cgroup runner,\nreplay, fault-io,\nllama-bench matrix", fillcolor="#f5f0fb"];
+    gt -> sim [label=".mpt traces"];
+    sim -> pol [label="same mp-core code", style=dotted];
+  }
+}
