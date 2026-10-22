@@ -22,9 +22,8 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
 - **Demoted:** V(e) pinning (LFU did better in simulation; needs
   `CAP_IPC_LOCK`) and predictive prefetch.
 - **Tests:** 85 Rust + 13 Python, all passing; clippy and ruff clean.
-- **Team docs:** Ayush's docs branch (`AyushSinha2210/moepager@ayush`) is
-  *not merged*. Merging was blocked in this session as external-code
-  integration. Its errors are listed in
+- **Team docs:** Ayush's docs branch was merged on GitHub (PR #1). Its
+  factual errors were then corrected on `main`; the record is in
   `docs/report/REVIEW_AYUSH_BRANCH.md`.
 
 ## Next up
@@ -36,7 +35,6 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
    (needs ~19 GB of free disk).
 3. Upstream: propose a llama.cpp option for `MADV_RANDOM` on expert tensors
    (would remove the shim).
-4. Merge Ayush's docs branch after applying the review fixes.
 
 ## Phases
 
