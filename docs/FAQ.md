@@ -6,7 +6,7 @@
 `moepager` provides expert-aware page-cache management for Mixture-of-Experts (MoE) LLMs in `llama.cpp`. By analyzing the GGUF header and monitoring page-cache misses from user space, it pins hot experts and issues bulk readahead for missing ones without modifying the inference engine or copying model weights.
 
 #### Does `moepager` alter model weights or inference accuracy?
-No. `moepager` is purely an I/O and memory caching layer. It never mutates tensor weights, never quantizes data, and does not alter the mathematical output of `llama.cpp`.
+No. `moepager` only gives the kernel page-cache hints; it never reads or changes weight values. One caveat: the required `--no-repack` (`-nr`) makes llama.cpp use different CPU kernels than its default, so outputs can differ slightly from *default* llama.cpp, though not between runs with and without moepager.
 
 ---
 
@@ -36,14 +36,10 @@ No. `moepager` relies on Linux-specific virtual memory interfaces:
 - `cgroup v2` memory controllers and Pressure Stall Information (PSI)
 
 #### Can `moepager` be run inside Docker containers?
-Yes, provided the container is granted the required capabilities and has access to the host model file:
-```bash
-docker run --rm \
-  --cap-add=IPC_LOCK \
-  --cap-add=SYS_NICE \
-  -v /path/to/models:/models:ro \
-  moepager:latest /models/model.gguf --policy v
-```
+Not packaged: there is no Dockerfile or image. In principle the daemon needs the same capabilities in a container (`IPC_LOCK` for pinning, `SYS_NICE` for demotion), the model on a real filesystem rather than overlayfs, and the same cgroup as the engine. This is untested.
+
+#### Do I need the `LD_PRELOAD` shim?
+Yes, in practice. Measured on OLMoE (Phase 7), the kernel's fault read-around (4 MiB on btrfs) is the dominant cost. Without the shim the daemon helped only 1.3–1.4×; with it, 3.7–4.0× over the stock page-cache path. The shim does not change llama.cpp's code or binary. It only applies `madvise(MADV_RANDOM)` to the GGUF mapping (ADR 0011).
 
 #### How does context window length impact moepager?
-During initial prompt evaluation (prefill), all prompt tokens are processed in batch mode, generating high burst cache misses across all layers. During token generation (decode), expert activation follows steady per-token top-$ sparsity, where (e)$ residency stabilization achieves maximal speedup.
+During prompt processing (prefill), many tokens are evaluated in one batch, so most experts of every layer are touched at once: completion readahead helps, but residency matters little. During generation (decode), each token touches only top-k experts per layer; that is the phase all Phase 7 measurements cover. Long-context effects (a larger KV cache competing for the same memory budget) are not measured.
