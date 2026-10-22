@@ -192,6 +192,8 @@ pub struct ReplayArgs {
     /// Evict the model from the page cache before starting.
     #[arg(long)]
     pub cold: bool,
+    /// Disable readahead (MADV_RANDOM on the mapping / FADV_RANDOM on the fd):
+    /// an upper reference for "no read-around pollution".
     #[arg(long)]
     pub no_readahead: bool,
     /// Evict the file's unmapped pages after every token (pread mode), so

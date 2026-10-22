@@ -34,8 +34,9 @@ pub struct ReplayConfig {
     pub drop_each_token: bool,
     /// Stop after this many tokens (0 = all).
     pub max_tokens: usize,
-    /// `POSIX_FADV_RANDOM` on the replayer's fd (pread mode): disables
-    /// readahead so only touched pages enter the cache. btrfs uses a 4 MiB
+    /// Disable readahead: `POSIX_FADV_RANDOM` on the fd (pread mode) and
+    /// `MADV_RANDOM` on the mapping (mmap mode, turns off fault read-around),
+    /// so only touched pages enter the cache. btrfs uses a 4 MiB
     /// readahead window, which otherwise spills into neighbouring experts.
     pub no_readahead: bool,
 }
@@ -131,6 +132,14 @@ pub fn replay(
         let rc = unsafe { libc::posix_fadvise(file.as_raw_fd(), 0, 0, libc::POSIX_FADV_RANDOM) };
         if rc != 0 {
             return Err(io::Error::from_raw_os_error(rc));
+        }
+        if let Some(m) = &mapping {
+            // Fault read-around is controlled per mapping (VM_RAND_READ).
+            // SAFETY: advice on our own mapping.
+            let rc = unsafe { libc::madvise(m.addr as *mut libc::c_void, m.len, libc::MADV_RANDOM) };
+            if rc != 0 {
+                return Err(io::Error::last_os_error());
+            }
         }
     }
     let page = 4096usize;
