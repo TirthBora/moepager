@@ -47,9 +47,12 @@ other applications. See IDEA_REVIEW.md for verified details and numbers.
 
 ## Non-goals
 
-- Modifying llama.cpp or any engine, LD_PRELOAD shims, or uprobes in the
+- Modifying llama.cpp or any engine (source or binary), or uprobes in the
   product path. An instrumented engine is allowed **only** for ground-truth
-  experiments.
+  experiments. *Revised 2026-10-23 (ADR 0011):* one optional
+  `LD_PRELOAD` shim is allowed. It only adds `madvise(MADV_RANDOM)` to the
+  model mapping, because Phase 7 showed fault read-around is the dominant
+  cost and no stock llama.cpp option disables it on single-node machines.
 - GPU/VRAM tiering. This is CPU decode with host RAM and SSD.
 - Changing model quality (no pruning, no low-precision substitution).
 - Custom kernels or kernel modules. cache_ext is a research option only.

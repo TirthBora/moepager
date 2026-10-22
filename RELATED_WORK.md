@@ -1,7 +1,8 @@
 # Related work, and exactly how moepager differs
 
 moepager's position has three parts:
-- **black-box**: no engine changes, no LD_PRELOAD, no uprobes in the product
+- **black-box**: no engine source or binary changes (one optional 64-line
+  `LD_PRELOAD` shim adds `MADV_RANDOM`; see ADR 0011), no uprobes in the product
   path;
 - **OS-level**: it works only through the shared page cache with stock
   syscalls;
@@ -64,6 +65,8 @@ from page-cache misses (§C) and acts only on the shared page cache.
 | `--no-mmap` | reads everything into anonymous memory. Swap-backed under pressure |
 | `--cpu-moe`, `--n-cpu-moe`, `-ot` | place expert tensors on CPU buffers (GPU setups). A reported side effect: experts in anonymous memory |
 | `--no-mmap-prefetch` (PR #29250) | skips the load-time whole-file WILLNEED |
+| `--lazy-mode on\|auto\|off` (`-lzm`; present at llama.cpp commit 970b51c, 2026-10-22) | lazy-reads tensors into **CPU buffers in anonymous memory**, and advises `POSIX_MADV_RANDOM` on the lazy file ranges. `auto` applies only to tensors > 4 GiB. Under a cgroup wall without swap, `on` was **OOM-killed** in our runs (2.4 GB peak at a 2.5 GB limit), so it is not a page-cache mode |
+| `--numa distribute\|isolate\|numactl` | applies `POSIX_MADV_RANDOM` to the whole model mapping, which turns off fault read-around, **but only when the machine has more than one NUMA node** (`ggml_is_numa()`). On single-node laptops it does not, so no stock llama.cpp option disables read-around on consumer machines. That is why moepager ships a 64-line `LD_PRELOAD` shim (`tools/preload`) that applies `MADV_RANDOM` to GGUF mappings without changing the engine |
 
 ## A caveat when comparing with prior WILLNEED results
 
