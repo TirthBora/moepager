@@ -93,12 +93,13 @@ if want D; then
   echo "== D: end-to-end llama-bench decode under a memory wall"
   : "${LLAMA_BIN:?set LLAMA_BIN for step D}"
   for cap in $BUDGETS; do
-    for cfg in ${DCFGS:-B0 B2 D2 P PD}; do
+    for cfg in ${DCFGS:-B0 B0S B2 D2 P PD}; do
       run="$OUT/D-$cap/$cfg"; mkdir -p "$run"
-      lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r 1 -t "$(nproc --ignore=4)" -lm mmap)
+      lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r "${REPS:-1}" -t "$(nproc --ignore=4)" -lm mmap)
       swap=0; daemon=()
       case "$cfg" in
-        B0) lb+=(--repack 1); swap=infinity ;;                       # default: repack into anon memory
+        B0) lb+=(--repack 1); swap=infinity ;;
+        B0S) lb+=(--repack 1) ;;                                # default llama.cpp, no swap (zram is RAM)                       # default: repack into anon memory
         B2) lb+=(--repack 0) ;;                                 # page cache, kernel policy only
         B5) lb+=(--repack 0); daemon=(--policy willneed-all --no-completion) ;;
         D2) lb+=(--repack 0); daemon=(--policy v --budget-mb 0) ;; # completion readahead (pinning needs CAP_IPC_LOCK)
