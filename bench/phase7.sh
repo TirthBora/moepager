@@ -18,6 +18,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 : "${MODEL:?set MODEL}"
 B="$root/target/release/moepager"; D="$root/target/release/moepagerd"
 MOE_TRACE="${MOE_TRACE:-$root/build/moe_trace/moe_trace}"
+PRELOAD="${PRELOAD:-$root/tools/preload/libmoepager_preload.so}"
 NTOK="${NTOK:-256}"; BUDGETS="${BUDGETS:-1500M 2500M}"; TG="${TG:-32}"; STEPS="${STEPS:-A B C D}"
 name="$(basename "$MODEL" .gguf)"
 OUT="${OUT:-$root/bench/results/phase7-$name-$(date +%Y%m%d-%H%M)}"
@@ -92,7 +93,7 @@ if want D; then
   echo "== D: end-to-end llama-bench decode under a memory wall"
   : "${LLAMA_BIN:?set LLAMA_BIN for step D}"
   for cap in $BUDGETS; do
-    for cfg in ${DCFGS:-B0 B2 D2 L LD}; do
+    for cfg in ${DCFGS:-B0 B2 D2 P PD}; do
       run="$OUT/D-$cap/$cfg"; mkdir -p "$run"
       lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r 1 -t "$(nproc --ignore=4)" -lm mmap)
       swap=0; daemon=()
@@ -101,8 +102,8 @@ if want D; then
         B2) lb+=(--repack 0) ;;                                 # page cache, kernel policy only
         B5) lb+=(--repack 0); daemon=(--policy willneed-all --no-completion) ;;
         D2) lb+=(--repack 0); daemon=(--policy v --budget-mb 0) ;; # completion readahead (pinning needs CAP_IPC_LOCK)
-        L)  lb+=(-lzm on) ;;                                    # llama.cpp lazy mode: mmap + MADV_RANDOM, no repack
-        LD) lb+=(-lzm on); daemon=(--policy v --budget-mb 0) ;;  # lazy mode + moepagerd completion readahead
+        P)  lb=(env LD_PRELOAD="$PRELOAD" "${lb[@]}" --repack 0) ;;          # read-around off via shim, kernel policy
+        PD) lb=(env LD_PRELOAD="$PRELOAD" "${lb[@]}" --repack 0); daemon=(--policy v --budget-mb 0) ;;  # shim + moepagerd
       esac
       cold
       "$root/bench/snapshot.sh" "$run/before" "$(lsblk -no PKNAME "$(df --output=source "$MODEL" | tail -1)" | head -1)"
