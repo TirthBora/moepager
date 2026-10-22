@@ -62,11 +62,29 @@ if want C; then
 fi
 
 if want B; then
-  echo "== B: replay ground truth under a memory wall (simulator validation)"
+  echo "== B: replay ground truth under a memory wall (simulator validation + mechanism test)"
   for cap in $BUDGETS; do
-    cold
-    "$root/bench/cgroup_run.sh" "$cap" 0 "$OUT/B-$cap" -- \
-      "$B" replay "$MODEL" "$OUT/trace-prose.mpt" --mode mmap --threads 4 --json "$OUT/B-$cap/replay.json" | tee "$OUT/B-$cap/replay.txt"
+    for var in ${BVARS:-plain random daemon randaemon}; do
+      run="$OUT/B-$cap/$var"; mkdir -p "$run"; cold
+      rp=("$B" replay "$MODEL" "$OUT/trace-prose.mpt" --mode mmap --threads 4 --json "$run/replay.json")
+      case "$var" in
+        plain)  "$root/bench/cgroup_run.sh" "$cap" 0 "$run" -- "${rp[@]}" > "$run/replay.txt" ;;
+        random) "$root/bench/cgroup_run.sh" "$cap" 0 "$run" -- "${rp[@]}" --no-readahead > "$run/replay.txt" ;;
+        daemon) # completion readahead from moepagerd, inside the same cgroup
+          "$root/bench/cgroup_run.sh" "$cap" 0 "$run" -- bash -c '
+            "$1" "$2" --ops linux --source sentinel --interval-us 300 --policy v --budget-mb 0 \
+              --stats-json "$3/daemon.json" 2> "$3/daemon.log" & pid=$!
+            sleep 1; shift 3; "$@"; rc=$?; kill -INT $pid; wait $pid; exit $rc' _ \
+            "$D" "$MODEL" "$run" "${rp[@]}" > "$run/replay.txt" ;;
+        randaemon) # read-around off (as llama.cpp --lazy-mode on does) + completion readahead
+          "$root/bench/cgroup_run.sh" "$cap" 0 "$run" -- bash -c '
+            "$1" "$2" --ops linux --source sentinel --interval-us 300 --policy v --budget-mb 0 \
+              --stats-json "$3/daemon.json" 2> "$3/daemon.log" & pid=$!
+            sleep 1; shift 3; "$@"; rc=$?; kill -INT $pid; wait $pid; exit $rc' _ \
+            "$D" "$MODEL" "$run" "${rp[@]}" --no-readahead > "$run/replay.txt" ;;
+      esac
+      echo "$cap $var: $(cat "$run/replay.txt")"
+    done
   done
 fi
 
@@ -74,15 +92,17 @@ if want D; then
   echo "== D: end-to-end llama-bench decode under a memory wall"
   : "${LLAMA_BIN:?set LLAMA_BIN for step D}"
   for cap in $BUDGETS; do
-    for cfg in B0 B2 B5 D2; do
+    for cfg in ${DCFGS:-B0 B2 D2 L LD}; do
       run="$OUT/D-$cap/$cfg"; mkdir -p "$run"
-      lb=("$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r 1 -t "$(nproc --ignore=4)" -lm mmap)
+      lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r 1 -t "$(nproc --ignore=4)" -lm mmap)
       swap=0; daemon=()
       case "$cfg" in
         B0) lb+=(--repack 1); swap=max ;;                       # default: repack into anon memory
         B2) lb+=(--repack 0) ;;                                 # page cache, kernel policy only
         B5) lb+=(--repack 0); daemon=(--policy willneed-all --no-completion) ;;
         D2) lb+=(--repack 0); daemon=(--policy v --budget-mb 0) ;; # completion readahead (pinning needs CAP_IPC_LOCK)
+        L)  lb+=(-lzm on) ;;                                    # llama.cpp lazy mode: mmap + MADV_RANDOM, no repack
+        LD) lb+=(-lzm on); daemon=(--policy v --budget-mb 0) ;;  # lazy mode + moepagerd completion readahead
       esac
       cold
       "$root/bench/snapshot.sh" "$run/before" "$(lsblk -no PKNAME "$(df --output=source "$MODEL" | tail -1)" | head -1)"
