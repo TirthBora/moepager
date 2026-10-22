@@ -97,7 +97,7 @@ if want D; then
       lb=(timeout "${RUN_TIMEOUT:-900}" "$LLAMA_BIN/llama-bench" -m "$MODEL" -p 0 -n "$TG" -r 1 -t "$(nproc --ignore=4)" -lm mmap)
       swap=0; daemon=()
       case "$cfg" in
-        B0) lb+=(--repack 1); swap=max ;;                       # default: repack into anon memory
+        B0) lb+=(--repack 1); swap=infinity ;;                       # default: repack into anon memory
         B2) lb+=(--repack 0) ;;                                 # page cache, kernel policy only
         B5) lb+=(--repack 0); daemon=(--policy willneed-all --no-completion) ;;
         D2) lb+=(--repack 0); daemon=(--policy v --budget-mb 0) ;; # completion readahead (pinning needs CAP_IPC_LOCK)

@@ -136,7 +136,8 @@ pub fn replay(
         if let Some(m) = &mapping {
             // Fault read-around is controlled per mapping (VM_RAND_READ).
             // SAFETY: advice on our own mapping.
-            let rc = unsafe { libc::madvise(m.addr as *mut libc::c_void, m.len, libc::MADV_RANDOM) };
+            let rc =
+                unsafe { libc::madvise(m.addr as *mut libc::c_void, m.len, libc::MADV_RANDOM) };
             if rc != 0 {
                 return Err(io::Error::last_os_error());
             }
