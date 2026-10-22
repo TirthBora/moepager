@@ -101,11 +101,11 @@ For passive traces (`sentinel`, `bpftrace`, `mincore-scan`) where token boundari
 
 - Exporting to CSV:
   ```bash
-  moepager trace-csv trace.mpt -o trace.csv
+  moepager trace-csv trace.mpt > trace.csv
   ```
 - Converting page trace to expert trace:
   ```bash
-  moepager page2expert page_trace.mpt --map map.json -o expert_trace.mpt
+  moepager page2expert page_trace.mpt --gguf model.gguf -o expert_trace.mpt
   ```
 
 

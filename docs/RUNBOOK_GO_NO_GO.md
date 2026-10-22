@@ -32,10 +32,11 @@ Btrfs uses large readahead windows (4 MiB) and extent compression (zstd) which a
 
 ```bash
 # Create and mount a 30 GB ext4 loopback image
-truncate -s 30G /tmp/ext4_scratch.img
-mkfs.ext4 /tmp/ext4_scratch.img
+# Keep the image on disk, NOT in /tmp: on Fedora /tmp is tmpfs (RAM).
+truncate -s 30G ~/ext4_scratch.img
+mkfs.ext4 ~/ext4_scratch.img
 mkdir -p ~/mnt/ext4_models
-sudo mount -o loop /tmp/ext4_scratch.img ~/mnt/ext4_models
+sudo mount -o loop ~/ext4_scratch.img ~/mnt/ext4_models
 sudo chown $USER:$USER ~/mnt/ext4_models
 cp ~/models/Qwen3-30B-A3B-Q4_K_M.gguf ~/mnt/ext4_models/
 ```
