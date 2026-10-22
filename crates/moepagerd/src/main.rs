@@ -43,8 +43,9 @@ struct Args {
     /// Disable expert-completion readahead.
     #[arg(long)]
     no_completion: bool,
-    /// Ignore repeated misses of a unit for this long after prefetching it.
-    #[arg(long, default_value_t = 20.0)]
+    /// Ignore repeated misses of a unit for this long after prefetching it
+    /// (0 = off; a 20 ms window measured slower, see DaemonConfig).
+    #[arg(long, default_value_t = 0.0)]
     refractory_ms: f64,
     /// Enable cross-layer predictive prefetch (V policy).
     #[arg(long)]

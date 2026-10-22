@@ -104,7 +104,7 @@ if want D; then
         B5) lb+=(--repack 0); daemon=(--policy willneed-all --no-completion) ;;
         D2) lb+=(--repack 0); daemon=(--policy v --budget-mb 0) ;; # completion readahead (pinning needs CAP_IPC_LOCK)
         P)  lb=(env LD_PRELOAD="$PRELOAD" "${lb[@]}" --repack 0) ;;          # read-around off via shim, kernel policy
-        PD) lb=(env LD_PRELOAD="$PRELOAD" "${lb[@]}" --repack 0); daemon=(--policy v --budget-mb 0) ;;  # shim + moepagerd
+        PD) lb=(env LD_PRELOAD="$PRELOAD" "${lb[@]}" --repack 0); daemon=(--policy v --budget-mb 0 ${DAEMON_EXTRA:-}) ;;  # shim + moepagerd
       esac
       cold
       "$root/bench/snapshot.sh" "$run/before" "$(lsblk -no PKNAME "$(df --output=source "$MODEL" | tail -1)" | head -1)"

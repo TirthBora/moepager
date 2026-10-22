@@ -57,10 +57,12 @@ pub struct DaemonConfig {
     pub cost: CostModel,
     /// Layer drop that marks a new token (see `mp_trace::infer_tokens`).
     pub token_slack: u16,
-    /// Ignore further misses of a unit for this long after prefetching it.
-    /// Each unit has one sentinel per slice and the daemon's own completion
-    /// readahead flips the other sentinels, so without this every real miss
-    /// would trigger up to three full-unit prefetches.
+    /// Ignore further misses of a unit for this long after prefetching it
+    /// (0 = off, the default). Each unit has one sentinel per slice, so a real
+    /// miss can trigger up to three full-unit prefetches. Measured on OLMoE
+    /// (Phase 7 ablation), suppressing them with a 20 ms window *doubled*
+    /// misses and cut decode speed from 5.4 to 2.1 tok/s: the repeats act as
+    /// refreshes for pages reclaimed while the engine works through the unit.
     pub refractory_ns: u64,
 }
 
@@ -74,7 +76,7 @@ impl Default for DaemonConfig {
             prefetch: PrefetchConfig::default(),
             cost: CostModel::default(),
             token_slack: 2,
-            refractory_ns: 20_000_000,
+            refractory_ns: 0,
         }
     }
 }

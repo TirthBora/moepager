@@ -53,8 +53,8 @@ fn dry_run_on_synthetic_trace() {
         c["prefetch_ops"], 160,
         "completion readahead on every observed miss"
     );
-    // Default window: synthetic tokens are < 20 ms apart, so repeats are suppressed.
-    let d = run(&[], &dir.join("stats.json"));
+    // With a 20 ms window, synthetic tokens (< 20 ms apart) get suppressed.
+    let d = run(&["--refractory-ms", "20"], &dir.join("stats.json"));
     assert_eq!(
         d["prefetch_ops"].as_u64().unwrap() + d["suppressed_prefetches"].as_u64().unwrap(),
         160
