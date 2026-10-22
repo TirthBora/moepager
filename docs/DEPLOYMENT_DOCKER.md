@@ -1,11 +1,14 @@
-# Docker & Container Deployment Architecture
+# Containers
 
-Deploying `moepager` in microservices and containerized environments.
+**Not packaged and untested:** there is no Dockerfile or image. Notes for
+anyone trying it:
 
-## Capability Grants
-When containerized, grant required ambient capabilities:
-- `--cap-add=IPC_LOCK`: Required if allocating an `mlock` pin budget.
-- `--cap-add=SYS_NICE`: Required for `process_madvise(MADV_COLD)` demotion.
-
-## Storage Mounts
-Mount model storage with direct host filesystem paths to preserve POSIX fadvise and mincore semantics. Avoid overlayfs layers for model storage.
+- The measured configuration (`--budget-mb 0`, no demotion) needs **no**
+  extra capabilities. Optional pinning needs `--cap-add=IPC_LOCK` (or a
+  raised memlock limit), and optional demotion needs `--cap-add=SYS_NICE`
+  plus the engine's pid in the same PID namespace.
+- The daemon must see the **same file** (same inode) as the engine and run
+  in the **same memory cgroup**. That usually means the same container, or
+  a shared cgroup.
+- Keep models on a host bind mount rather than an overlayfs layer, so that
+  `mincore`/`fadvise` act on the real file's page cache.

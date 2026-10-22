@@ -1,5 +1,9 @@
 # Review of `AyushSinha2210/moepager@ayush` (20 docs commits)
 
+> **Status (2026-10-23):** the branch was merged on GitHub (PR #1). All
+> items below have since been fixed on `main`, in the commits following
+> the merge. This file is kept as the record of what was wrong and why.
+
 Checked against the code on `main`. Each item is a factual error or an
 unsupported claim that would cost marks if a grader runs the commands or
 compares the docs with the code. Items are ordered by severity.

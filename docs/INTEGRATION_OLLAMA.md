@@ -1,9 +1,18 @@
-# Ollama and Headless Engine Integration Considerations
+# Ollama and Other llama.cpp-Based Engines
 
-Architecture considerations for using `moepager` with containerized or headless inference engines like Ollama.
+**Untested.** Notes for anyone trying moepager with engines that embed
+llama.cpp.
 
-## Transparent Interception
-Because `moepager` operates purely at the OS page cache layer, any inference engine that maps GGUF files with `mmap(MAP_SHARED)` and avoids repacking will benefit from expert completion and pinning without needing API integration or IPC.
-
-## Verifying Memory Sharing
-Ensure the server process opens the file in `MAP_SHARED` mode. Private mappings (`MAP_PRIVATE`) create copy-on-write anonymous pages which prevent shared folio pinning.
+- **Repacking:** moepager only helps if expert weights stay in the page
+  cache. Ollama bundles llama.cpp with its default repacking, which on
+  AVX2/NEON moves most quantised expert weights into anonymous memory, and
+  it does not obviously expose `--no-repack`. Check with
+  `moepager gguf-map <blob>` and by watching `/proc/<pid>/smaps` (file vs
+  anonymous RSS).
+- **Mapping type:** llama.cpp maps the model with `MAP_SHARED`. A
+  read-only `MAP_PRIVATE` mapping would also stay in the page cache: pages
+  only become private anonymous copies when written.
+- **Read-around:** the `tools/preload` shim recognises files ending in
+  `.gguf`. Ollama's model blobs have no extension, so set
+  `MOEPAGER_PRELOAD_ANY=1` (optionally `MOEPAGER_PRELOAD_MIN_MB`) to cover
+  them.
