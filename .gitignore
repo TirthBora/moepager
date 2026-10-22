@@ -11,3 +11,4 @@ __pycache__/
 *.mpt
 !tests/data/*.mpt
 bench/results/
+/build/
