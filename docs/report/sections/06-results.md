@@ -50,8 +50,19 @@ caches of 15–70 % of the expert bytes. Miss ratios for the prose prompt
   at 25–50 % but is *worse* at 15 %.
 - Plain LFU beats V(e) in most cells.
 
-The residency policy is therefore the weakest part of the design. Since
-pinning also needs `CAP_IPC_LOCK`, it was not used in the end-to-end runs.
+**Why V(e) lagged (pin-fraction sweep).** The default lets V(e) pin only
+60 % of the cache and leaves the rest to LRU. With full observation and a
+pin fraction of 0.95, V(e) matches LFU almost exactly: prose at 50 %, 0.081
+vs 0.080; code at 15 %, 0.278 vs 0.276. Its ranking is sound.
+
+The remaining gap is the **cost of black-box observation**. With misses
+only, V(e) at 0.95 has 10–40 % more misses than with full observation in
+most cells, and up to 2× in a few code-prompt cells (code at 25 %: 0.162 vs
+0.075). That is exactly the information hidden from an unprivileged daemon,
+because page-cache hits are invisible.
+
+Pinning needs `CAP_IPC_LOCK`, so it was not used in the end-to-end runs.
+Data: `bench/results/phase7-olmoe/pinfrac-sweep/`.
 
 ## 6.3 Experiment B: what the real kernel does (and simulator validation)
 

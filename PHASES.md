@@ -28,7 +28,7 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
 
 ## Next up
 
-1. **P8.7**: an LFU-based residency policy (P8.3 and P8.5 are done).
+1. **P8.2**: evaluate pinning end to end with `CAP_IPC_LOCK` and a budget ≈ 90 % of expert capacity (P8.3, P8.5 and P8.7 are done).
 2. **P10.1** validation on a second machine (ext4, disk swap), so that
    default llama.cpp can be compared at equal memory, and on Qwen3-30B-A3B
    (needs ~19 GB of free disk).
@@ -115,7 +115,7 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
 - [x] P8.8 Warn when the engine maps the model with read-around on (`/proc/pid/smaps` VmFlags `rr`)
 - [x] P8.9 Read-around shim (`tools/preload`, ADR 0011)
 - [x] P8.10 Refractory-window ablation; kept, but off by default (doubled misses when on)
-- [ ] P8.7 Replace V(e) by an LFU-based residency policy (better in simulation) and evaluate with `CAP_IPC_LOCK`
+- [x] P8.7 Investigated V(e) vs LFU (pin-fraction sweep on real traces): with full observation and pin fraction 0.95, V(e) ≈ LFU. The gap was the 60 % default plus miss-only blindness (10–40 % more misses in most cells, up to 2×). Recommendation: pin budget ≈ 90 % of expert capacity. End-to-end pinning still needs `CAP_IPC_LOCK` (P8.2)
 
 ### Phase 9 — Co-tenant protection
 - [ ] P9.1 PSI-driven budget controller (`/proc/pressure/memory`, cgroup `memory.pressure`)
@@ -154,8 +154,9 @@ capabilities in the dev session):**
   read-around on helps only 1.3–1.4×. Its sentinels fire on polluted
   pages (331k events for 32k real accesses in replay). Always run the
   engine with the shim.
-- **V(e) residency underperforms LFU** in simulation on real traces, and
-  is worse than LRU at 15 % capacity.
+- **V(e) residency** underperforms LFU at the default 60 % pin fraction.
+  At 0.95 with full observation it matches LFU. Miss-only observation
+  costs 10–40 % more misses in most cells, up to 2× (P8.7).
 - **Run-to-run variance** of PD at 2.5 GB is high: 3.2–5.4 tok/s across
   sessions.
 - llama.cpp `--lazy-mode on` puts weights in anonymous memory: OOM-killed
