@@ -25,8 +25,9 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
 - **What doesn't (yet):**
   - Completion readahead *without* turning read-around off made things
     worse.
-  - Our V(e) pinning policy did not beat simple LFU in simulation and
-    needs extra privileges.
+  - Our V(e) pinning policy only matched LFU when allowed to pin most of
+    the cache. With black-box (miss-only) observation it still loses
+    10–40 % in most cells, up to 2×, and it needs extra privileges.
   - Default llama.cpp is faster than every page-cache configuration
     *if* it may spill 2.3–2.5 GB of repacked weights into zram (compressed
     RAM). Without swap it is OOM-killed at both budgets.
@@ -58,8 +59,9 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
    shim.
 2. Repeat on ext4 (128 KiB readahead) and on the larger models, with
    longer runs.
-3. Replace V(e) with an LFU-based residency policy (better in simulation)
-   and evaluate pinning with `CAP_IPC_LOCK`.
+3. Evaluate pinning end to end with `CAP_IPC_LOCK` and a pin budget near
+   90 % of the expert cache. Narrow the miss-only gap with privileged hit
+   observation (DAMON) where available.
 4. Add a fallback when WILLNEED is ineffective (`MADV_POPULATE_READ`), and
    PSI-driven control of the memory budget to protect other applications.
 
