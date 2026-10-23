@@ -54,7 +54,10 @@ tokens/s**, versus 0.35 and 0.87 tokens/s for the same engine served by
 the default page cache. That is **3.7–4.0× faster**, with **7–8× less SSD
 traffic** and memory-pressure stall reduced from 12.7 % to 1.0 %. Default
 llama.cpp, by contrast, was OOM-killed at both limits unless allowed to
-spill 2.3–2.5 GB into compressed RAM swap.
+spill 2.3–2.5 GB into compressed RAM swap. On a second model, gpt-oss-20b
+(12.1 GB), replaying real routing under 4 GB and 6 GB limits showed the
+same pattern: 1.6–2.0× faster than the kernel default, with 15–20× less
+SSD traffic.
 
 We also report what did not work: a value-based pinning policy captured
 little of the optimal policy's 34–74 % miss reduction, and completion
@@ -621,7 +624,59 @@ cut PD at 2.5 GB from 3.21–5.42 to 1.09–2.05 tok/s. The repeats re-fetch
 pages reclaimed while the engine is still working through an expert. The
 window is therefore off by default.
 
-## 6.6 Comparison with expected outcomes and with existing methods
+## 6.6 Second model: gpt-oss-20b (experiments A–C)
+
+The same pipeline was run on gpt-oss-20b MXFP4: 12.1 GB file, 24 layers ×
+32 experts, top-4, 13.25 MB per expert unit. Memory limits were 4 GB and
+6 GB, and routing was recorded for 3 prompts × 128 tokens. Raw data:
+`bench/results/phase7-gptoss/`.
+
+**Experiment D did not run.** Its first configuration, default llama.cpp,
+repacks 100 % of gpt-oss's expert bytes (≈ 10 GB) into anonymous memory and
+swaps them to zram, which lives in RAM. The machine ran critically low on
+memory and the run was stopped. This is itself evidence of the problem
+moepager avoids, but there are no end-to-end gpt-oss numbers.
+
+- **Routing (A):** 40–47 % token-to-token reuse, next-layer recall 0.54–0.62
+    versus 0.39–0.46 for popularity. Belady\* saves 44–67 % of LRU's misses
+    at 15–50 % capacity, similar to OLMoE.
+- **Bandwidth (C), 13.25 MB units:**
+
+    | Method | GB/s | Amplification |
+    |---|---|---|
+    | mmap faults | 0.14–0.44 | ≈ 2.5× |
+    | WILLNEED, 128 KiB chunks | 1.44–1.88 | 1.00× |
+    | WILLNEED, one call per slice | 0.93–1.10 | 1.44×, truncated |
+    | pread | 0.31–0.65 | — |
+
+- **Replay (B), prose trace, 1.27 GB of experts per token:**
+
+| Budget | Variant | tokens/s | SSD read / token |
+|---|---|---|---|
+| 4 GB | kernel default | 1.05 | 1.33 GB |
+| 4 GB | read-around off | 0.49 | 0.30 GB |
+| 4 GB | + moepagerd (read-around on) | 1.11 | 0.73 GB |
+| 4 GB | **read-around off + moepagerd** | **1.64** | **0.07 GB** |
+| 6 GB | kernel default | 2.68 | 0.36 GB |
+| 6 GB | read-around off | 1.24 | 0.12 GB |
+| 6 GB | + moepagerd (read-around on) | 3.27 | 0.25 GB |
+| 6 GB | **read-around off + moepagerd** | **5.47** | **0.02 GB** |
+
+![gpt-oss replay](fig-replay-gptoss.png)
+
+**Reading:**
+- The best configuration is the same as for OLMoE: read-around off plus
+    completion readahead, **1.6× and 2.0× faster** than the kernel default,
+    with **15–20× less SSD traffic**.
+- Two differences from OLMoE:
+    - gpt-oss's expert slices (4.4 MB) are about as large as the read-around
+        window, so read-around wastes less (≈ 1.05× at 4 GB).
+    - Read-around off *alone* is slower than the default here, because 4 KiB
+        faults replace useful large reads.
+- moepagerd turns those small faults back into bulk reads, and also helps
+    somewhat on its own with read-around on (1.06× and 1.22×).
+
+## 6.7 Comparison with expected outcomes and with existing methods
 
 | Expectation (IDEA_REVIEW, before measuring) | Outcome |
 |---|---|
@@ -641,7 +696,7 @@ window is therefore off by default.
     3.7–4.0× improvement over the stock page-cache path without modifying
     the engine's code or binary, at the cost of one `LD_PRELOAD` hint.
 
-## 6.7 Go / no-go decision
+## 6.8 Go / no-go decision
 
 **GO, with narrowed scope** (recorded in PHASES.md):
 - The product is "read-around off + expert-completion readahead",
@@ -694,9 +749,11 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
 
 ## 7.2 Limitations
 
-- One machine, one filesystem (btrfs with a 4 MiB readahead window), one
-    model (OLMoE). Qwen3-30B and gpt-oss-20b were mapped from their headers
-    but not run, for lack of disk space and time.
+- One machine, one filesystem (btrfs with a 4 MiB readahead window).
+    End-to-end llama.cpp numbers exist only for OLMoE. gpt-oss-20b was
+    evaluated with real routing, replay and the bandwidth benchmark, but its
+    llama-bench run was stopped for low system memory. Qwen3-30B was only
+    mapped from its header.
 - Short runs (32 decode tokens × 3 repetitions in llama-bench); some
     configurations show large run-to-run spread.
 - A desktop session was running during measurements.

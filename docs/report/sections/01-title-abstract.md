@@ -54,7 +54,10 @@ tokens/s**, versus 0.35 and 0.87 tokens/s for the same engine served by
 the default page cache. That is **3.7–4.0× faster**, with **7–8× less SSD
 traffic** and memory-pressure stall reduced from 12.7 % to 1.0 %. Default
 llama.cpp, by contrast, was OOM-killed at both limits unless allowed to
-spill 2.3–2.5 GB into compressed RAM swap.
+spill 2.3–2.5 GB into compressed RAM swap. On a second model, gpt-oss-20b
+(12.1 GB), replaying real routing under 4 GB and 6 GB limits showed the
+same pattern: 1.6–2.0× faster than the kernel default, with 15–20× less
+SSD traffic.
 
 We also report what did not work: a value-based pinning policy captured
 little of the optimal policy's 34–74 % miss reduction, and completion

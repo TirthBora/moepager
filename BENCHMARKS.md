@@ -137,6 +137,18 @@ replayed with mmap and 4 threads under a cgroup wall with swap off
 | OLMoE-1B-7B Q4_K_M | 2.5 GB | moepagerd (read-around on) | 2.82 | 0.36 | 321 |
 | OLMoE-1B-7B Q4_K_M | 2.5 GB | read-around off + moepagerd | 2.48 | 0.05 | 12,641 |
 
+| gpt-oss-20b MXFP4 | 4 GB | kernel default | 1.05 | 1.33 | 708 |
+| gpt-oss-20b MXFP4 | 4 GB | read-around off | 0.49 | 0.30 | 73,595 |
+| gpt-oss-20b MXFP4 | 4 GB | moepagerd (read-around on) | 1.11 | 0.73 | 515 |
+| gpt-oss-20b MXFP4 | 4 GB | read-around off + moepagerd | 1.64 | 0.07 | 16,151 |
+| gpt-oss-20b MXFP4 | 6 GB | kernel default | 2.68 | 0.36 | 310 |
+| gpt-oss-20b MXFP4 | 6 GB | read-around off | 1.24 | 0.12 | 28,529 |
+| gpt-oss-20b MXFP4 | 6 GB | moepagerd (read-around on) | 3.27 | 0.25 | 247 |
+| gpt-oss-20b MXFP4 | 6 GB | read-around off + moepagerd | 5.47 | 0.02 | 5,952 |
+
+(gpt-oss rows: prose trace of 127 tokens, 1.272 GB of experts touched per
+token, `bench/results/phase7-gptoss/B-*`.)
+
 Simulator LRU at 1.5 GB (≈ 37 % of expert bytes) predicts ≈ 0.14 GB/token,
 which matches the read-around-off kernel run (0.16). With read-around on,
 the kernel reads ≈ 12× more: pollution the simulator does not model.
@@ -164,7 +176,7 @@ Co-tenant slowdown was not measured.
 | OLMoE-1B-7B Q4_K_M | 2.5 GB | P | 2.51 ± 0.51 | 0.10 | 14,497 | 4.5 |
 | OLMoE-1B-7B Q4_K_M | 2.5 GB | **PD** | **3.21 ± 0.65** | 0.17 | 8,161 | 2.5 |
 | Qwen3-30B-A3B Q4_K_M | — | — | TBD (not run: disk space) | TBD | TBD | TBD |
-| gpt-oss-20b MXFP4 | — | — | TBD (not run) | TBD | TBD | TBD |
+| gpt-oss-20b MXFP4 | 4 / 6 GB | all | not run: the default-llama.cpp configuration swapped ≈ 10 GB into zram and the run was stopped for low system memory | — | — | — |
 
 PD at 2.5 GB across three independent sessions: 3.30 (1 rep), 5.42 ± 1.07,
 3.21 ± 0.65.

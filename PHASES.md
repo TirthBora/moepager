@@ -21,6 +21,12 @@ OLMoE-1B-7B on the dev laptop; full numbers in BENCHMARKS.md, raw data in
   swap beyond the budget.
 - **Demoted:** V(e) pinning (LFU did better in simulation; needs
   `CAP_IPC_LOCK`) and predictive prefetch.
+- **Second model:** gpt-oss-20b experiments A–C completed
+  (`bench/results/phase7-gptoss/`). The same configuration was best:
+  replay 1.6–2.0× faster, 15–20× less SSD traffic. Experiment D was stopped
+  because the default-llama.cpp baseline swapped ≈ 10 GB into zram and ran
+  the machine low on memory. Rerun D without the B0 config
+  (`DCFGS="B0S B2 D2 P PD"`).
 - **Tests:** 87 Rust + 13 Python, all passing; clippy and ruff clean; CI green.
 - **Team docs:** Ayush's docs branch was merged on GitHub (PR #1). Its
   factual errors were then corrected on `main`; the record is in

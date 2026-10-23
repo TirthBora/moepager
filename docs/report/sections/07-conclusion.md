@@ -41,9 +41,11 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
 
 ## 7.2 Limitations
 
-- One machine, one filesystem (btrfs with a 4 MiB readahead window), one
-  model (OLMoE). Qwen3-30B and gpt-oss-20b were mapped from their headers
-  but not run, for lack of disk space and time.
+- One machine, one filesystem (btrfs with a 4 MiB readahead window).
+  End-to-end llama.cpp numbers exist only for OLMoE. gpt-oss-20b was
+  evaluated with real routing, replay and the bandwidth benchmark, but its
+  llama-bench run was stopped for low system memory. Qwen3-30B was only
+  mapped from its header.
 - Short runs (32 decode tokens × 3 repetitions in llama-bench); some
   configurations show large run-to-run spread.
 - A desktop session was running during measurements.
