@@ -1,0 +1,42 @@
+-- seed 1 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.17 | 77.10 | 2.48 |
+| willneed | 1.86 | 7.11 | 0.99 |
+| pread | 0.59 | 22.43 | 2.46 |
+-- seed 1 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.44 | 30.23 | 2.62 |
+| willneed | 1.08 | 12.33 | 1.44 |
+| pread | 0.62 | 21.53 | 2.46 |
+-- seed 2 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.43 | 30.51 | 2.55 |
+| willneed | 1.44 | 9.23 | 1.00 |
+| pread | 0.65 | 20.35 | 2.50 |
+-- seed 2 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.36 | 37.23 | 2.51 |
+| willneed | 0.93 | 14.19 | 1.45 |
+| pread | 0.31 | 42.98 | 2.50 |
+-- seed 3 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.14 | 94.29 | 2.59 |
+| willneed | 1.88 | 7.05 | 1.00 |
+| pread | 0.63 | 21.17 | 2.48 |
+-- seed 3 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.37 | 35.58 | 2.60 |
+| willneed | 1.10 | 12.10 | 1.44 |
+| pread | 0.62 | 21.54 | 2.48 |

@@ -1,0 +1,99 @@
+== environment
+6.19.14-108.fc42.x86_64
+CPU(s):                                  12
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450H
+CPU(s) scaling MHz:                      69%
+               total        used        free      shared  buff/cache   available
+Mem:           15671        5678         268         209       10271        9992
+/dev/nvme0n1p3 btrfs 498443264 473201840  21597072  96% /home
+/sys/class/bdi/0:286/read_ahead_kb 128
+/sys/class/bdi/251:0/read_ahead_kb 128
+/sys/class/bdi/259:0/read_ahead_kb 128
+/sys/class/bdi/7:0/read_ahead_kb 128
+/sys/class/bdi/7:1/read_ahead_kb 128
+/sys/class/bdi/7:2/read_ahead_kb 128
+/sys/class/bdi/7:3/read_ahead_kb 128
+/sys/class/bdi/7:4/read_ahead_kb 128
+/sys/class/bdi/7:5/read_ahead_kb 128
+/sys/class/bdi/btrfs-1/read_ahead_kb 4096
+/sys/class/bdi/mtd-0/read_ahead_kb 0
+0x0007
+llama.cpp 970b51c Thu Oct 22 10:54:24 2026 -0700
+arch=gpt-oss layers=24 moe_layers=24 experts=32 top_k=4 units=768 expert_bytes=10.179GB dense_bytes=1.918GB unit_bytes[min/avg/max]=13253760/13253760/13253760 warnings=0
+warning: on this CPU, default llama.cpp repacks 72 expert tensors (100% of expert bytes) into anonymous memory; run llama.cpp with --no-repack (-nr) so experts are served from the page cache
+wrote bench/results/phase7-gptoss/map.json
+== A: ground-truth traces + simulation
+~llama_context:        CPU compute buffer size is  23.0455 MiB, matches expectation of  23.0455 MiB
+imported 12192 rows, 127 tokens -> bench/results/phase7-gptoss/trace-chat.mpt
+wrote bench/results/phase7-gptoss/analyze-chat.json
+source=llama-evalcb observation=Full tokens=127 accesses=12192
+footprint=7.859GB cold_misses=593 median_reuse_units=Some(136)
+token_reuse=0.465 top10_share=0.354 norm_entropy=0.807 units_touched=0.772
+next-layer recall@k: transitions=0.576 popularity=0.416 prev-token=0.475 (concentration top4=0.591)
+~llama_context:        CPU compute buffer size is  23.8687 MiB, matches expectation of  23.8687 MiB
+imported 12192 rows, 127 tokens -> bench/results/phase7-gptoss/trace-code.mpt
+wrote bench/results/phase7-gptoss/analyze-code.json
+source=llama-evalcb observation=Full tokens=127 accesses=12192
+footprint=8.933GB cold_misses=674 median_reuse_units=Some(155)
+token_reuse=0.411 top10_share=0.327 norm_entropy=0.853 units_touched=0.878
+next-layer recall@k: transitions=0.535 popularity=0.389 prev-token=0.419 (concentration top4=0.550)
+~llama_context:        CPU compute buffer size is  16.4611 MiB, matches expectation of  16.4611 MiB
+imported 12192 rows, 127 tokens -> bench/results/phase7-gptoss/trace-prose.mpt
+wrote bench/results/phase7-gptoss/analyze-prose.json
+source=llama-evalcb observation=Full tokens=127 accesses=12192
+footprint=7.806GB cold_misses=589 median_reuse_units=Some(163)
+token_reuse=0.401 top10_share=0.389 norm_entropy=0.781 units_touched=0.767
+next-layer recall@k: transitions=0.621 popularity=0.459 prev-token=0.407 (concentration top4=0.625)
+== C: fault vs bulk read bandwidth on the model file
+-- seed 1 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.17 | 77.10 | 2.48 |
+| willneed | 1.86 | 7.11 | 0.99 |
+| pread | 0.59 | 22.43 | 2.46 |
+-- seed 1 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.44 | 30.23 | 2.62 |
+| willneed | 1.08 | 12.33 | 1.44 |
+| pread | 0.62 | 21.53 | 2.46 |
+-- seed 2 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.43 | 30.51 | 2.55 |
+| willneed | 1.44 | 9.23 | 1.00 |
+| pread | 0.65 | 20.35 | 2.50 |
+-- seed 2 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.36 | 37.23 | 2.51 |
+| willneed | 0.93 | 14.19 | 1.45 |
+| pread | 0.31 | 42.98 | 2.50 |
+-- seed 3 willneed-chunk-kb 128
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.14 | 94.29 | 2.59 |
+| willneed | 1.88 | 7.05 | 1.00 |
+| pread | 0.63 | 21.17 | 2.48 |
+-- seed 3 willneed-chunk-kb 0
+file=/home/AeroChrome/models/gpt-oss-20b-MXFP4.gguf size=12.11GB units=32 unit=13.25MB slices=3 threads=8 read_ahead: see /sys/class/bdi/*/read_ahead_kb
+| mode | GB/s (touched) | ms/unit | storage read / touched |
+|---|---|---|---|
+| fault | 0.37 | 35.58 | 2.60 |
+| willneed | 1.10 | 12.10 | 1.44 |
+| pread | 0.62 | 21.54 | 2.48 |
+== B: replay ground truth under a memory wall (simulator validation + mechanism test)
+4G plain: tokens=127 wall=121.47s tok/s=1.05 majflt/token=708.3 storage_read/token=1.329GB touched/token=1.272GB
+4G random: tokens=127 wall=259.16s tok/s=0.49 majflt/token=73594.5 storage_read/token=0.301GB touched/token=1.272GB
+4G daemon: tokens=127 wall=113.90s tok/s=1.11 majflt/token=514.8 storage_read/token=0.728GB touched/token=1.272GB
+4G randaemon: tokens=127 wall=77.48s tok/s=1.64 majflt/token=16151.3 storage_read/token=0.066GB touched/token=1.272GB
+6G plain: tokens=127 wall=47.32s tok/s=2.68 majflt/token=310.0 storage_read/token=0.356GB touched/token=1.272GB
+6G random: tokens=127 wall=102.26s tok/s=1.24 majflt/token=28529.3 storage_read/token=0.117GB touched/token=1.272GB
+6G daemon: tokens=127 wall=38.80s tok/s=3.27 majflt/token=246.7 storage_read/token=0.247GB touched/token=1.272GB
+6G randaemon: tokens=127 wall=23.20s tok/s=5.47 majflt/token=5951.7 storage_read/token=0.024GB touched/token=1.272GB
+== D: end-to-end llama-bench decode under a memory wall

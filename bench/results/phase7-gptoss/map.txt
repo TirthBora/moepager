@@ -1,0 +1,1 @@
+arch=gpt-oss layers=24 moe_layers=24 experts=32 top_k=4 units=768 expert_bytes=10.179GB dense_bytes=1.918GB unit_bytes[min/avg/max]=13253760/13253760/13253760 warnings=0

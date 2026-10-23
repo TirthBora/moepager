@@ -1,0 +1,1 @@
+tokens=127 wall=102.26s tok/s=1.24 majflt/token=28529.3 storage_read/token=0.117GB touched/token=1.272GB
