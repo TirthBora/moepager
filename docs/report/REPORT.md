@@ -491,8 +491,19 @@ caches of 15–70 % of the expert bytes. Miss ratios for the prose prompt
     at 25–50 % but is *worse* at 15 %.
 - Plain LFU beats V(e) in most cells.
 
-The residency policy is therefore the weakest part of the design. Since
-pinning also needs `CAP_IPC_LOCK`, it was not used in the end-to-end runs.
+**Why V(e) lagged (pin-fraction sweep).** The default lets V(e) pin only
+60 % of the cache and leaves the rest to LRU. With full observation and a
+pin fraction of 0.95, V(e) matches LFU almost exactly: prose at 50 %, 0.081
+vs 0.080; code at 15 %, 0.278 vs 0.276. Its ranking is sound.
+
+The remaining gap is the **cost of black-box observation**. With misses
+only, V(e) at 0.95 has 10–40 % more misses than with full observation in
+most cells, and up to 2× in a few code-prompt cells (code at 25 %: 0.162 vs
+0.075). That is exactly the information hidden from an unprivileged daemon,
+because page-cache hits are invisible.
+
+Pinning needs `CAP_IPC_LOCK`, so it was not used in the end-to-end runs.
+Data: `bench/results/phase7-olmoe/pinfrac-sweep/`.
 
 ## 6.3 Experiment B: what the real kernel does (and simulator validation)
 
@@ -667,8 +678,9 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
 - **What doesn't (yet):**
     - Completion readahead *without* turning read-around off made things
         worse.
-    - Our V(e) pinning policy did not beat simple LFU in simulation and
-        needs extra privileges.
+    - Our V(e) pinning policy only matched LFU when allowed to pin most of
+        the cache. With black-box (miss-only) observation it still loses
+        10–40 % in most cells, up to 2×, and it needs extra privileges.
     - Default llama.cpp is faster than every page-cache configuration
         *if* it may spill 2.3–2.5 GB of repacked weights into zram (compressed
         RAM). Without swap it is OOM-killed at both budgets.
@@ -700,8 +712,9 @@ On a real model (OLMoE-1B-7B) on a 15 GB laptop, the outcome was:
       shim.
 2. Repeat on ext4 (128 KiB readahead) and on the larger models, with
       longer runs.
-3. Replace V(e) with an LFU-based residency policy (better in simulation)
-      and evaluate pinning with `CAP_IPC_LOCK`.
+3. Evaluate pinning end to end with `CAP_IPC_LOCK` and a pin budget near
+      90 % of the expert cache. Narrow the miss-only gap with privileged hit
+      observation (DAMON) where available.
 4. Add a fallback when WILLNEED is ineffective (`MADV_POPULATE_READ`), and
       PSI-driven control of the memory budget to protect other applications.
 
