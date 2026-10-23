@@ -100,7 +100,9 @@ def bandwidth(res: Path, out: Path) -> None:
     plt.close(fig)
 
 
-def replay(res: Path, out: Path) -> None:
+def replay(
+    res: Path, out: Path, model: str = "OLMoE", need: str = "0.49", name: str = "fig-replay.png"
+) -> None:
     """Experiment B: replay of the real prose trace under a memory wall."""
     variants = [
         ("plain", "kernel default"),
@@ -120,11 +122,11 @@ def replay(res: Path, out: Path) -> None:
                 data[(bud, v)] = (tps, ssd)
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.6))
     w = 0.8 / len(variants)
-    for i, (v, name) in enumerate(variants):
+    for i, (v, label) in enumerate(variants):
         xs = [j + (i - (len(variants) - 1) / 2) * w for j in range(len(budgets))]
         for k, (ax, fmt) in enumerate(((axes[0], "{:.2f}"), (axes[1], "{:.2f}"))):
             ys = [data.get((b, v), (0, 0))[k] for b in budgets]
-            bars = ax.bar(xs, ys, w * 0.92, color=SERIES[i], label=name)
+            bars = ax.bar(xs, ys, w * 0.92, color=SERIES[i], label=label)
             label_bars(ax, bars, fmt)
     for ax, t, yl in (
         (axes[0], "Replay speed (higher is better)", "tokens/s"),
@@ -135,13 +137,13 @@ def replay(res: Path, out: Path) -> None:
         ax.set_title(t, color=INK, fontsize=10)
     axes[0].legend(frameon=False, fontsize=8, loc="upper left")
     fig.suptitle(
-        "Experiment B: real OLMoE routing replayed on the real file "
-        "(0.49 GB of experts needed per token)",
+        f"Experiment B: real {model} routing replayed on the real file "
+        f"({need} GB of experts needed per token)",
         color=INK,
         fontsize=10.5,
     )
     fig.tight_layout()
-    fig.savefig(out / "fig-replay.png", dpi=200)
+    fig.savefig(out / name, dpi=200)
     plt.close(fig)
 
 
@@ -241,6 +243,9 @@ def end_to_end(res: Path, out: Path) -> dict:
 
 
 def main(argv: list[str]) -> int:
+    if len(argv) == 3 and argv[2] == "--replay-only-gptoss":
+        replay(Path(argv[0]), Path(argv[1]), "gpt-oss-20b", "1.27", "fig-replay-gptoss.png")
+        return 0
     if len(argv) != 2:
         print(__doc__)
         return 2
